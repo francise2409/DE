@@ -173,6 +173,17 @@ table.sched-edit input[type=text],table.sched-edit input[type=date]{height:26px;
 table.sched-edit input[type=color]{width:34px;height:24px;}
 .schedule-note{font-size:11.5px;color:var(--gray);line-height:1.45;}
 
+/* ===== Training plan / Assets (Thiết bị-Phần mềm-Tiêu chuẩn) ===== */
+.pbar-cell{display:flex;align-items:center;gap:7px;min-width:150px;}
+.pbar-wrap{width:80px;height:9px;background:#E1E7F3;border-radius:5px;overflow:hidden;flex:0 0 auto;}
+.pbar-fill{height:100%;border-radius:5px;}
+.pbar-pct{font-weight:bold;font-size:11.5px;min-width:34px;text-align:right;}
+tr.grouphead td{font-weight:bold;font-size:12px;color:#fff;padding:6px 10px;letter-spacing:.3px;}
+.asset-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.asset-tabs button{background:#fff;border:1px solid var(--line);color:var(--navy);padding:8px 14px;border-radius:7px;font-size:12.5px;font-weight:bold;cursor:pointer;font-family:inherit;}
+.asset-tabs button.active{background:var(--red);border-color:var(--red);color:#fff;}
+.stat-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px;}
+td.disc-cell select{width:100%;}
 </style>
 </head>
 <body>
@@ -189,9 +200,11 @@ table.sched-edit input[type=color]{width:34px;height:24px;}
     </span>
   </div>
   <nav class="tabs main-tabs">
-    <button data-main="orgsuite" class="active" onclick="showMain('orgsuite')">Organization Chart</button>
-    <button data-main="manhour" onclick="showMain('manhour')">Man-hour</button>
-    <button data-main="scheduler" onclick="showMain('scheduler')">Schedule</button>
+    <button data-main="orgsuite" class="active" onclick="showMain('orgsuite')">1. Organization Chart</button>
+    <button data-main="training" onclick="showMain('training')">2. Kế hoạch đào tạo</button>
+    <button data-main="assets" onclick="showMain('assets')">3. Thiết bị - Phần mềm - Tiêu chuẩn</button>
+    <button data-main="manhour" onclick="showMain('manhour')">4. Man-hour</button>
+    <button data-main="scheduler" onclick="showMain('scheduler')">5. Schedule</button>
   </nav>
 </header>
 <main>
@@ -280,6 +293,78 @@ table.sched-edit input[type=color]{width:34px;height:24px;}
         </div>
         <div class="sidepanel" id="dashPanel"></div>
       </div>
+    </section>
+  </section>
+
+  <section class="mainview" id="main-training">
+    <div class="tbl-toolbar">
+      <button class="btn navy" onclick="addTrainingRow()">＋ Thêm hàng</button>
+      <span class="legend-note">Bộ môn lấy từ danh sách discipline của Sơ đồ tổ chức (tab 1) — không thể thêm mới ở đây; hãy thêm/sửa discipline ở tab 1.</span>
+      <span class="legend-note">Ưu tiên: <b style="background:#C6EFCE;padding:1px 7px;border-radius:3px;">Cao</b> <b style="background:#FCE4D6;padding:1px 7px;border-radius:3px;">Trung bình</b> <b style="background:#DAEEF3;padding:1px 7px;border-radius:3px;">Thấp</b></span>
+      <span class="legend-note">Bắt đầu/Kết thúc tự tính theo Thời gian dự kiến, nối tiếp nhau trong từng Bộ môn — chỉnh "Ngày bắt đầu nhóm" ở hàng tiêu đề mỗi Bộ môn để dời cả nhóm.</span>
+    </div>
+    <div class="table-card" id="tblTraining"></div>
+    <div class="chart-card" style="margin-top:14px;">
+      <div class="tbl-toolbar" style="margin-bottom:2px;">
+        <label class="f" style="margin:0;white-space:nowrap;">Tên chart</label>
+        <input type="text" id="trainTitleInput" style="max-width:420px;" onchange="S.trainingCfg.title=this.value;renderTraining()">
+        <label class="f" style="margin:0;white-space:nowrap;">Màu tiêu đề / accent</label>
+        <input type="color" id="trainColorInput" onchange="S.trainingCfg.titleColor=this.value;renderTraining()">
+        <select id="trainScale" style="width:auto;"><option value="2">2×</option><option value="3" selected>3× – slide</option><option value="4">4×</option></select>
+        <button class="btn primary small" onclick="exportTrainingPNG()">📷 Xuất PNG</button>
+        <span class="hint" style="margin-left:auto;">Màu cột theo Bộ môn tự đồng bộ với màu khối trên Sơ đồ tổ chức.</span>
+      </div>
+      <div id="trainChart"></div>
+    </div>
+  </section>
+
+  <section class="mainview" id="main-assets">
+    <div class="asset-tabs">
+      <button data-asset="equip" class="active" onclick="showAsset('equip')">Thiết bị</button>
+      <button data-asset="soft" onclick="showAsset('soft')">Phần mềm</button>
+      <button data-asset="std" onclick="showAsset('std')">Tiêu chuẩn</button>
+    </div>
+
+    <section class="mh-view active" id="asset-equip">
+      <div class="mh-tabs">
+        <button data-sub="list" class="active" onclick="showAssetSub('equip','list')">Danh sách</button>
+        <button data-sub="stats" onclick="showAssetSub('equip','stats')">Thống kê &amp; Chart</button>
+      </div>
+      <section class="mh-view active" id="equip-list">
+        <div class="tbl-toolbar"><button class="btn navy" onclick="addEquipRow()">＋ Thêm thiết bị</button><span class="legend-note">Chỉnh sửa trực tiếp mọi ô; bảng thống kê &amp; chart tự cập nhật.</span></div>
+        <div class="table-card" id="tblEquip"></div>
+      </section>
+      <section class="mh-view" id="equip-stats">
+        <div id="equipStats"></div>
+      </section>
+    </section>
+
+    <section class="mh-view" id="asset-soft">
+      <div class="mh-tabs">
+        <button data-sub="list" class="active" onclick="showAssetSub('soft','list')">Danh sách</button>
+        <button data-sub="stats" onclick="showAssetSub('soft','stats')">Thống kê &amp; Chart</button>
+      </div>
+      <section class="mh-view active" id="soft-list">
+        <div class="tbl-toolbar"><button class="btn navy" onclick="addSoftRow()">＋ Thêm phần mềm</button><span class="legend-note">Bộ môn lấy từ danh sách discipline của tab 1 (kèm mục "All disciplines").</span></div>
+        <div class="table-card" id="tblSoft"></div>
+      </section>
+      <section class="mh-view" id="soft-stats">
+        <div id="softStats"></div>
+      </section>
+    </section>
+
+    <section class="mh-view" id="asset-std">
+      <div class="mh-tabs">
+        <button data-sub="list" class="active" onclick="showAssetSub('std','list')">Danh sách</button>
+        <button data-sub="stats" onclick="showAssetSub('std','stats')">Thống kê</button>
+      </div>
+      <section class="mh-view active" id="std-list">
+        <div class="tbl-toolbar"><button class="btn navy" onclick="addStdRow()">＋ Thêm tiêu chuẩn</button><span class="legend-note">Bộ môn chính lấy từ danh sách discipline của tab 1.</span></div>
+        <div class="table-card" id="tblStd"></div>
+      </section>
+      <section class="mh-view" id="std-stats">
+        <div id="stdStats"></div>
+      </section>
     </section>
   </section>
 
@@ -393,6 +478,272 @@ function defaultSchedules(){
 const SEED_PEOPLE = [{"msnv":"POS000704","name":"Dương Văn Lưu","title":"Tổ trưởng Tổ thiết kế","email":"luudv@ptsc.com.vn","disc":"Structure","role":"PMT","tIMA":{},"tALL":{"Block B":"X","LDV PL":"X"},"id":"p1"},{"msnv":"POS000702","name":"Lê Văn Dư","title":"Tổ phó Tổ thiết kế","email":"dule@ptsc.com.vn","disc":"Process","role":"PMT","tIMA":{"IMA":"X"},"tALL":{"IMA":"X","Lower Zakum":"X","COMP4":"X"},"id":"p2"},{"msnv":"POS001372","name":"Nguyễn Hữu Ân","title":"Chuyên viên cấp cao","email":"annh02@ptsc.com.vn","disc":"EIT","role":"Instrument & Telecom leader","tIMA":{"IMA":"X"},"tALL":{"IMA":"X","Lower Zakum":"X"},"id":"p3"},{"msnv":"POS000866","name":"Nguyễn Hồng Quân","title":"Chuyên viên thiết kế thi công hàng hải","email":"quannguyenhong@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{"IMA":"Chuyển T&I"},"tALL":{"IMA":"Chuyển T&I"},"id":"p4"},{"msnv":"POS001006","name":"Nguyễn Văn Tùng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"tungnv01@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{},"tALL":{"MM1":"X","COMP4":"X","BH1":"X"},"id":"p5"},{"msnv":"POS001035","name":"Hồ Thanh Phong","title":"Chuyên viên thiết kế thi công hàng hải","email":"phonght01@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{"IMA":"Chuyển T&I"},"tALL":{"IMA":"Chuyển T&I"},"id":"p6"},{"msnv":"POS001156","name":"Vũ Trần Nam Long","title":"Chuyên viên thiết kế thi công hàng hải","email":"longvtn@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{},"tALL":{"COMP4":"X","Ruya 12":"X"},"id":"p7"},{"msnv":"POS001182","name":"Nguyễn Chí Kiên","title":"Chuyên viên thiết kế thi công hàng hải","email":"kiennc@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{},"tALL":{"IMA":"X","LDV PL":"X"},"id":"p8"},{"msnv":"POS001145","name":"Nguyễn Sỹ Hùng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"hungns@ptsc.com.vn","disc":"Structure","role":"Structure Leader","tIMA":{},"tALL":{"TNHA":"X","MM1":"X"},"id":"p9"},{"msnv":"POS000957","name":"Nguyễn Thanh Sơn","title":"Chuyên viên Dự án đấu nối và chạy thử","email":"sonnguyenthanh@ptsc.com.vn","disc":"Piping","role":"Piping Leader","tIMA":{"IMA":"X"},"tALL":{"IMA":"X","LDV":"X"},"id":"p10"},{"msnv":"POS001106","name":"Lê Nguyễn Minh Hoàng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"hoanglnm@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{},"id":"p11"},{"msnv":"POS001003","name":"Tô Hạ Long","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"longtoha@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"Block B":"X","Ruya 12":"X","Ruya 13":"X"},"id":"p12"},{"msnv":"POS001108","name":"Phan Hồng Duy","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"duyph@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{},"id":"p13"},{"msnv":"POS001073","name":"Nguyễn Hải Hưng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"hungnh02@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"COMP4":"X","Ruya 12":"X","Ruya 13":"X"},"id":"p14"},{"msnv":"POS001214","name":"Nguyễn Quốc Gia Liêm","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"liemnqg@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{},"tALL":{"Block B":"X","Ruya 12":"X"},"id":"p15"},{"msnv":"POS001209","name":"Trần Phạm Thanh Tân","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"tantpt@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{"IMA":"X"},"tALL":{"IMA":"X"},"id":"p16"},{"msnv":"POS001100","name":"Nguyễn Tấn Dũng","title":"Chuyên viên dự án vận chuyển và lắp đặt","email":"dungnt01@ptsc.com.vn","disc":"Naval Architect","role":"Naval Architect","tIMA":{"IMA":"Chuyển T&I"},"tALL":{"IMA":"Chuyển T&I"},"id":"p17"},{"msnv":"POS001238","name":"Đỗ Hữu Vượng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"vuongdh@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"Lower Zakum":"X","COMP4":"X","Ruya 12":"X"},"id":"p18"},{"msnv":"POS001246","name":"Dương Ngọc Trai","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"traidn@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{"IMA":"X"},"tALL":{"TNHA":"X"},"id":"p19"},{"msnv":"POS001249","name":"Võ Trần Anh Tuấn","title":"Chuyên viên thiết kế đường ống ngầm","email":"tuanvta@ptsc.com.vn","disc":"PipeLine","role":"PipeLine","tIMA":{},"tALL":{"LDV PL":"X"},"id":"p20"},{"msnv":"POS001262","name":"Phạm Thị Minh Châu","title":"Chuyên viên cấp cao (mảng công nghệ)","email":"chauptm@ptsc.com.vn","disc":"Process","role":"Process Leader","tIMA":{"IMA":"X"},"tALL":{"IMA":"X"},"id":"p21"},{"msnv":"POS001279","name":"Trần Việt Dũng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"dungtv01@ptsc.com.vn","disc":"Mechanical","role":"Mechanical Leader","tIMA":{"IMA":"X"},"tALL":{"STT2":"X","Lower Zakum":"X","COMP4":"X"},"id":"p22"},{"msnv":"POS000501","name":"Lê Quang Huy","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"huyquangle@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{},"tALL":{},"id":"p23"},{"msnv":"POS000840","name":"Nguyễn Trọng Trịnh","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"trinhnguyentrong@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{},"tALL":{"Block B":"X"},"id":"p24"},{"msnv":"POS000895","name":"Phạm Thế Chung","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"chungpt@ptsc.com.vn","disc":"Structure","role":"Scaffolding","tIMA":{"IMA":"X"},"tALL":{"COMP4":"X","Ruya 12":"X"},"id":"p25"},{"msnv":"POS000921","name":"Kim Ngọc Dũng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"dungkn@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{"IMA":"X"},"tALL":{"STT2":"X","Lower Zakum":"X","MM1":"X"},"id":"p26"},{"msnv":"POS001004","name":"Vũ Tuấn Minh","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"minhvt@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{},"id":"p27"},{"msnv":"POS001289","name":"Lữ Thành Phong","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"phonglt03@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{"IMA":"X"},"tALL":{"STT2":"X","TNHA":"X","Lower Zakum":"X"},"id":"p28"},{"msnv":"POS001393","name":"Nguyễn Trung Tín","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"tinnt@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"LDV":"X","Ruya 12":"X","BH1":"X"},"id":"p29"},{"msnv":"POS001183","name":"Trương Nguyễn Hoàng Khánh","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"khanhtnh@ptsc.com.vn","disc":"EIT","role":"Elechtrical","tIMA":{},"tALL":{"Block B":"X"},"id":"p30"},{"msnv":"POS001361","name":"Phạm Huy Hiệu","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"hieuph01@ptsc.com.vn","disc":"EIT","role":"Elechtrical","tIMA":{},"tALL":{"LDV":"X","Block B":"X"},"id":"p31"},{"msnv":"POS001378","name":"Trần Đặng Gia Huy","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"huytdg@ptsc.com.vn","disc":"Process","role":"Process","tIMA":{},"tALL":{"TNHA":"X","MM1":"X"},"id":"p32"},{"msnv":"POS001079","name":"Nguyễn Văn Vũ Hưng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"hungnvv@ptsc.com.vn","disc":"EIT","role":"Instrument & Telecom","tIMA":{},"tALL":{"TNHA":"X","Lower Zakum":"X","Ruya 12":"X"},"id":"p33"},{"msnv":"POS001386","name":"Trầm Phúc Vinh","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"vinhtp01@ptsc.com.vn","disc":"EIT","role":"Instrument & Telecom","tIMA":{},"tALL":{"STT2":"X","Ruya 12":"X"},"id":"p34"},{"msnv":"POS001412","name":"Phan Viết Sửu","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"suupv@ptsc.com.vn","disc":"EIT","role":"Electrical Leader","tIMA":{"IMA":"X"},"tALL":{"IMA":"X","TNHA":"X","Lower Zakum":"X"},"id":"p35"},{"msnv":"POS001417","name":"Nguyễn Thị Ngọc Linh","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"linhntn@ptsc.com.vn","disc":"Process","role":"Process","tIMA":{"IMA":"X"},"tALL":{"IMA":"X"},"id":"p36"},{"msnv":"POS100061","name":"Lê Nguyễn Hồng Phát","title":"Nhân viên Công nghệ","email":"phatlnh@ptsc.com.vn","disc":"Process","role":"Process","tIMA":{},"tALL":{"STT2":"X","Ruya 13":"X"},"id":"p37"},{"msnv":"POS001441","name":"Triệu Thành Tín","title":"Chuyên viên Thiết kế Đấu nối và Chạy thử","email":"tintt01@ptsc.com.vn","disc":"Mechanical","role":"Mechanical","tIMA":{},"tALL":{"Block B":"X","COMP4":"X"},"id":"p38"},{"msnv":"POS100065","name":"Nguyễn Hữu Cường","title":"Chuyên viên Thiết kế Đấu nối và Chạy thử","email":"cuongnh01@ptsc.com.vn","disc":"Mechanical","role":"Mechanical","tIMA":{"IMA":"X"},"tALL":{"Block B":"X","COMP4":"X"},"id":"p39"},{"msnv":"POS001451","name":"Dương Quang Khánh","title":"Chuyên viên Thiết kế Đấu nối và Chạy thử","email":"khanhdq@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{"IMA":"X"},"tALL":{"COMP4":"X"},"id":"p40"},{"msnv":"POS001447","name":"Nguyễn Tấn Trường","title":"chuyên viên thiết kế đấu nối và chạy thử","email":"truongnt01@pstc.com.vn","disc":"Process","role":"Process","tIMA":{"COMP4":"X"},"tALL":{"Lower Zakum":"X","COMP4":"X"},"id":"p41"},{"msnv":"POS100073","name":"Nguyễn Lê Hoàng","title":"Nhân viên thiết kế đấu nối và chạy thử","email":"hoangnl01@ptsc.com.vn","disc":"EIT","role":"EIT","tIMA":{},"tALL":{"Trainnee":"X"},"id":"p42"},{"msnv":"POS100085","name":"Lưu Quang Hải","title":"Nhân viên thiết kế thi công hàng hải","email":"TBA","disc":"EIT","role":"EIT","tIMA":{},"tALL":{"Trainnee":"X"},"id":"p43"},{"msnv":"POS001454","name":"Trần Ngọc Bảo Trâm","title":"Chuyên viên Thiết kế Đấu nối và Chạy thử","email":"TBA","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"IMA":"X","Lower Zakum":"X","COMP4":"X"},"id":"p44"},{"msnv":"POS100087","name":"Cao Tấn Hưng","title":"Nhân viên thiết kế đầu nối chạy thử","email":"TBA","disc":"Process","role":"Process","tIMA":{},"tALL":{"Trainnee":"X"},"id":"p45"},{"msnv":"POS100088","name":"Nguyễn Nhật Minh","title":"Nhân viên thiết kế thi công hành hải","email":"TBA","disc":"Mechanical","role":"Mechanical","tIMA":{},"tALL":{"Trainnee":"X"},"id":"p46"},{"msnv":"POS…..","name":"Lê Hoàng Đô","title":"","email":"dolh@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{"IMA":"X"},"tALL":{"TNHA":"X","COMP4":"X"},"id":"p47"},{"msnv":"NTP900003","name":"Trần Hoành","title":"","email":"hoanhtran@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"COMP4":"X","Ruya 12":"X","Ruya 13":"X"},"id":"p48"},{"msnv":"NTP900004","name":"Nguyễn Đăng Phú","title":"","email":"phund@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{},"tALL":{"Ruya 12":"X","Ruya 13":"X"},"id":"p49"},{"msnv":"NTP900040","name":"Nguyễn Văn Tự","title":"","email":"tunv01@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"COMP4":"X","Ruya 12":"X"},"id":"p50"},{"msnv":"NTP900174","name":"Lê Đình Lý","title":"","email":"lyld@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{},"tALL":{"Block B":"X"},"id":"p51"},{"msnv":"NTP900163","name":"Nghiêm Xuân Giang","title":"","email":"giangnx@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{},"tALL":{"Block B":"X","Ruya 12":"X"},"id":"p52"},{"msnv":"NTP900349","name":"Đinh Văn Trọng","title":"","email":"trongdv@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{"IMA":"X"},"tALL":{"TNHA":"X","COMP4":"X"},"id":"p53"},{"msnv":"NTP900006","name":"Nguyễn Trọng Hiếu","title":"","email":"hieunt01@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{},"tALL":{},"id":"p54"},{"msnv":"NTP900168","name":"Lê Thị Ngọc Mỹ","title":"","email":"myltn@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{},"tALL":{"TNHA":"X","Block B":"X","COMP4":"X"},"id":"p55"},{"msnv":"NTP900157","name":"Võ Khắc Tri","title":"","email":"trivk@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{},"tALL":{"LDV":"X","Ruya 12":"X"},"id":"p56"},{"msnv":"NTP900165","name":"Vũ Thái Nguyên","title":"","email":"nguyenvt@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{},"tALL":{"COMP4":"X","Ruya 12":"X","Ruya 13":"X"},"id":"p57"},{"msnv":"NTP900166","name":"Trịnh Đình Minh","title":"","email":"minhtd01@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"COMP4":"X","Ruya 12":"X","Ruya 13":"X"},"id":"p58"},{"msnv":"NTP….","name":"Lê Đức Minh","title":"","email":"","disc":"Structure","role":"Lifting","tIMA":{"IMA":"X"},"tALL":{"IMA":"X","Block B":"X"},"id":"p59"}];
 
 const DEFAULT_DISCIPLINES = ['Process','Piping','Structural / Civil','Mechanical','Electrical','Instrument & Telecom','Lifting','Pipeline','Naval Architect','PMT','QA/QC & Document Control'];
+
+/* ============ SOURCE DATA for tab 2 (Kế hoạch đào tạo) & tab 3 (Thiết bị / Phần mềm / Tiêu chuẩn) — extracted from POS_DE_Team_Development_Plan_2026_final.xlsx ============ */
+const SEED_TRAINING = [
+{disc:'Process',tool:'Line Sizing & Erosion Velocity',purpose:'Tính đường kính ống, vận tốc xói mòn cho pha lỏng, hơi và đa pha',standard:'API RP 14E (C-factor), TOTAL, Crane..',platform:'Excel/ Hysys/ App',output:'Line list, line sizing',priority:'Cao',estWeeks:8,progress:1,remark:'Đã validate bảng tính, sẽ khóa mật khẩu và áp dụng cả team'},
+{disc:'Process',tool:'Flash / Heat & Material Balance Check',purpose:'Kiểm tra cân bằng vật chất, nhiệt',standard:'-',platform:'Excel/ Tool inside Hysys',output:'Bảng cân bằng vật chất',priority:'Cao',estWeeks:4,progress:1,remark:'Xuất dữ liệu tự động qua HMB từ phần mềm mô phỏng Hysys bằng tool'},
+{disc:'Process',tool:'Three-Phase Separator Sizing',purpose:'Tính kích thước bình tách 3 pha (khí/dầu/nước)',standard:'API 12J, GPSA Data Book',platform:'Excel',output:'Separator calculation sheet',priority:'Cao',estWeeks:3,progress:1,remark:'Đã validate bảng tính, sẽ khóa mật khẩu và áp dụng cả team'},
+{disc:'Process',tool:'Flare Stack',purpose:'Tính kích thước chiều cao flare stack',standard:'API 521',platform:'Excel/Mathcad',output:'Flare stack sizing report',priority:'Cao',estWeeks:4,progress:1,remark:''},
+{disc:'Process',tool:'Two-Phase Separator Sizing',purpose:'Tính kích thước bình tách 2 pha (khí/lỏng)',standard:'API 12J, GPSA Data Book',platform:'Excel',output:'Separator calculation sheet',priority:'Cao',estWeeks:4,progress:1,remark:'Đã validate bảng tính, sẽ khóa mật khẩu và áp dụng cả team'},
+{disc:'Process',tool:'Control Valve Cv Calculation',purpose:'Tính hệ số Cv van điều khiển cho liquid, gas và đa pha',standard:'ISA 75.01.01',platform:'Excel/ Hysys',output:'CV calculation sheet',priority:'Cao',estWeeks:6,progress:0.33,remark:'Study đồng thời control valve và pump'},
+{disc:'Process',tool:'Pump Hydraulic Sizing',purpose:'Tính thủy lực bơm, differential head, NPSH available',standard:'API 610, HI Standards',platform:'Excel',output:'Pump datasheet sơ bộ',priority:'Cao',estWeeks:4,progress:0.33,remark:''},
+{disc:'Process',tool:'Relief Valve & PSV Sizing',purpose:'Tính kích thước van an toàn, relief load cho các trường hợp điển hình block outlet, fire case, gas blow-by, ..Các trường hợp khác sẽ study trong giai đoạn sau',standard:'API 520 Part I/II, API 521',platform:'Excel / Mathcad/ Hysys',output:'Process Datasheet PSV, orifice, line size for suction PSV and discharge PSV',priority:'Cao',estWeeks:6,progress:0,remark:''},
+{disc:'Process',tool:'Fire Fighting System',purpose:'Tính toán hệ thống chữa cháy: firewater demand, pump sizing, ring main, deluge/sprinkler, monitor',standard:'NFPA 15, NFPA 20, API RP 14G, DEP',platform:'Excel/ Mathcad',output:'Fire fighting system calc, P&ID support',priority:'Cao',estWeeks:6,progress:0,remark:''},
+{disc:'Process',tool:'KO Drum',purpose:'Tính kích thước KO drum; nozzle inlet/outlet, kiểm tra momentum',standard:'DEP 31.22.05.12, GPSA Data Book',platform:'Excel/Mathcad',output:'Sizing calc, datasheet',priority:'Cao',estWeeks:3,progress:0,remark:''},
+{disc:'Process',tool:'Atmospheric Tank Sizing & Venting',purpose:'Tính kích thước bồn khí quyển, gas blanket, vent/breather valve, level control',standard:'API 2000, API 650',platform:'Excel/HYSYS',output:'Tank datasheet, vent calc',priority:'Cao',estWeeks:6,progress:0,remark:''},
+{disc:'Process',tool:'TEG Dehydration System Calculation',purpose:'Tính toán tháp hấp thụ TEG, regenerator, flash drum, lưu lượng TEG tuần hoàn, stripping gas',standard:'GPSA Data Book, DEP',platform:'Excel/HYSYS',output:'TEG system sizing report',priority:'Trung bình',estWeeks:24,progress:0,remark:''},
+{disc:'Process',tool:'Heat Exchanger Duty Calculation',purpose:'Tính nhiệt tải, LMTD, diện tích trao đổi nhiệt sơ bộ',standard:'TEMA, API 660',platform:'Excel',output:'HX datasheet sơ bộ',priority:'Trung bình',estWeeks:3,progress:0,remark:''},
+{disc:'Process',tool:'Restriction Orifice (RO) Sizing',purpose:'Tính tấm RO',standard:'ISA 75, API 520',platform:'Excel/ Hysys',output:'RO datasheet, RO calculation sheet',priority:'Trung bình',estWeeks:3,progress:0,remark:''},
+{disc:'Process',tool:'Fuel Gas System Sizing',purpose:'Tính toán fuel gas scrubber, HEX, electric heater, filter trong skid fuel gas',standard:'GPSA, DEP, Norsok',platform:'Excel/HYSYS',output:'Fuel gas system calc',priority:'Trung bình',estWeeks:12,progress:0,remark:''},
+{disc:'Process',tool:'Nitrogen Package Sizing',purpose:'Tính số lượng bình N₂, lưu lượng cho purge, flare seal, blanket tank, start-up',standard:'Project spec, GPSA',platform:'Excel/HYSYS',output:'N₂ package sizing report',priority:'Trung bình',estWeeks:6,progress:0,remark:''},
+{disc:'Process',tool:'Chemical Injection System Sizing',purpose:'Tính lưu lượng hóa chất, kích thước bơm + bồn chứa, kết hợp mô hình 3D',standard:'Project spec, vendor data',platform:'Excel',output:'Chemical system sizing',priority:'Trung bình',estWeeks:3,progress:0,remark:''},
+{disc:'Process',tool:'Utility Balance (N₂ / Air / Fuel Gas)',purpose:'Tổng hợp cân bằng tiện ích: nitrogen, instrument air, fuel gas cho toàn hệ thống',standard:'Project spec, GPSA',platform:'Excel',output:'Utility balance summary',priority:'Trung bình',estWeeks:4,progress:0,remark:''},
+{disc:'Process',tool:'Process Simulation Template',purpose:'Template mô phỏng HYSYS/DWSIM cho các unit operation cơ bản',standard:'GPSA, experiment data',platform:'Excel/Python/ Hysys template',output:'Simulation checklist & input',priority:'Trung bình',estWeeks:12,progress:0,remark:''},
+{disc:'Mechanical',tool:'Pressure Vessel Quick Check',purpose:'Kiểm tra nhanh chiều dày, MAWP, Estimate nhanh khối lượng P.Vessel',standard:'ASME VIII Div 1 / Div 2 part 4',platform:'Excel/Mathcad App',output:'Pre-check trước PVElite',priority:'Cao',estWeeks:12,progress:0,remark:''},
+{disc:'Mechanical',tool:'Unit Converter',purpose:'Chuyển đổi nhanh giữa các đơn vị tiêu chuẩn',standard:'N/A',platform:'Excel / App',output:'Công cụ chuyển đổi nhanh giữa các đơn vị tiêu chuẩn',priority:'Trung bình',estWeeks:4,progress:0,remark:''},
+{disc:'Mechanical',tool:'Sheet Metal Calculation',purpose:'Công Cụ estimate nhanh khổ tôn cần để chế tạo các part như : Cylinder Shell, Ellipse Head, Reducer ...',standard:'N/A',platform:'Excel / App',output:'Công cụ estimate nhanh kích thước khổ tôn',priority:'Trung bình',estWeeks:4,progress:0,remark:''},
+{disc:'Mechanical',tool:'Rectangular Tank Calculation',purpose:'Tính toán chiều dày plate, lựa chọn loại tiết diện và phân bố vị trí của stiffeners',standard:'Roark\'s formulars',platform:'Excel',output:'Calc sheet cho Rectangular Tank',priority:'Trung bình',estWeeks:10,progress:0,remark:''},
+{disc:'Mechanical',tool:'Fitting Tolerance Calculation',purpose:'Tính toán dung sai lắp ghép cho các chi tiết trục, lỗ, then, rãnh then, coupling',standard:'ISO 286-1, ISO 286-2, ISO 773, DIN 6885, ANSI B17.1, ANSI/AGMA 9112-B15',platform:'Excel / App',output:'Calc sheet',priority:'Thấp',estWeeks:12,progress:0,remark:''},
+{disc:'Mechanical',tool:'Fan Shaft Calculation',purpose:'Tính toán sơ bộ trục truyền động cho quạt của Air Cooler',standard:'Equivalent Twisting Moment Method / Von Mises Stress',platform:'Excel / Inventor / ANSYS',output:'Calc sheet',priority:'Thấp',estWeeks:10,progress:0,remark:''},
+{disc:'Mechanical',tool:'Nozzle Load / Local Stress (WRC)',purpose:'Kiểm tra tải nozzle',standard:'WRC 107/297, ASME VIII',platform:'Excel/Mathcad',output:'Bảng kiểm tra nozzle',priority:'Thấp',estWeeks:10,progress:0,remark:'Không thật sự cần thiết, có thể tính trên PVElite, có thể xem xét bỏ'},
+{disc:'Piping',tool:'Pipe Wall Thickness (B31.3)',purpose:'Tính chiều dày ống chịu áp',standard:'ASME B31.3',platform:'Excel',output:'Bảng chiều dày ống',priority:'Cao',estWeeks:4,progress:1,remark:'Available'},
+{disc:'Piping',tool:'Pipe Stress Analysis',purpose:'Tính Phân tích ứng suất hệ thống ống',standard:'ASME B31.3/B31.4/B31.8',platform:'CAESAR II/Autopipe',output:'Analysis',priority:'Cao',estWeeks:12,progress:0.8,remark:'Under processing'},
+{disc:'Piping',tool:'Equipment Nozzle Load Check',purpose:'Kiểm tra tải trọng lên cổ ống thiết bị',standard:'API 610, API 617/ASME Section VIII, Div 1 / Div 2',platform:'Caesar II / Excel',output:'Analysis / Excel',priority:'Cao',estWeeks:5,progress:0,remark:''},
+{disc:'Piping',tool:'Pipe Support Span & Load',purpose:'Tính khoảng cách & tải gối đỡ',standard:'ASME B31.3, MSS-SP-58',platform:'Excel',output:'Support schedule',priority:'Trung bình',estWeeks:3,progress:0,remark:''},
+{disc:'Piping',tool:'Spring Hanger Selection',purpose:'Lựa chọn gối đỡ lò xo',standard:'MSS-SP-58 / Manufacturer',platform:'Caesar II / Catalog',output:'Analysis',priority:'Trung bình',estWeeks:5,progress:0,remark:''},
+{disc:'Piping',tool:'Branch Reinforcement Check',purpose:'Tính toán tấm gia cường mối nối nhánh',standard:'ASME B31.3',platform:'Excel',output:'Cal sheet',priority:'Trung bình',estWeeks:5,progress:0,remark:''},
+{disc:'Piping',tool:'Flange Rating / Leakage Check',purpose:'Kiểm tra rating mặt bích',standard:'ASME B16.5, B16.34/NC-3658.3',platform:'Caesar II/Excel',output:'Flange check',priority:'Cao',estWeeks:3,progress:0,remark:''},
+{disc:'Pipeline',tool:'On-Bottom Stability Quick Check',purpose:'Kiểm tra ổn định đáy biển',standard:'DNV-RP-F109',platform:'Excel/Python',output:'Stability check',priority:'Cao',estWeeks:4,progress:0,remark:''},
+{disc:'Pipeline',tool:'Wall Thickness & Collapse (subsea)',purpose:'Tính chiều dày, collapse/buckling',standard:'DNV-ST-F101, API RP 1111',platform:'Excel/Mathcad',output:'WT design report',priority:'Cao',estWeeks:5,progress:0,remark:''},
+{disc:'Pipeline',tool:'Free Span Screening (VIV)',purpose:'Sàng lọc nhịp tự do, VIV',standard:'DNV-RP-F105',platform:'Excel',output:'Span screening',priority:'Trung bình',estWeeks:3,progress:0,remark:''},
+{disc:'Structural / Civil',tool:'Member & Connection Check',purpose:'Kiểm tra cấu kiện, liên kết',standard:'AISC 360, API RP 2A',platform:'Excel/Mathcad',output:'Member check',priority:'Cao',estWeeks:5,progress:0,remark:''},
+{disc:'Structural / Civil',tool:'Padeye & Lifting Analysis',purpose:'Thiết kế padeye, phân tích cẩu',standard:'API RP 2A, DNV',platform:'Excel/Mathcad',output:'Lifting calc',priority:'Cao',estWeeks:5,progress:0,remark:''},
+{disc:'Structural / Civil',tool:'Weight Control & CoG Tracking',purpose:'Theo dõi trọng lượng & trọng tâm',standard:'Project spec',platform:'Excel',output:'Weight report',priority:'Cao',estWeeks:4,progress:0,remark:''},
+{disc:'Structural / Civil',tool:'Deck Plate / Grating Check',purpose:'Kiểm tra tấm sàn, grating',standard:'AISC, API Bul 2V',platform:'Excel',output:'Plate check',priority:'Trung bình',estWeeks:3,progress:0,remark:''},
+{disc:'Electrical',tool:'Cable Sizing & Voltage Drop',purpose:'Tính chọn cáp, sụt áp',standard:'IEEE, NEC (NFPA 70)',platform:'Excel',output:'Cable schedule',priority:'Cao',estWeeks:4,progress:0,remark:''},
+{disc:'Electrical',tool:'Load List & Load Schedule',purpose:'Tổng hợp tải điện',standard:'IEEE 3001',platform:'Excel',output:'Electrical load list',priority:'Cao',estWeeks:4,progress:0,remark:''},
+{disc:'Electrical',tool:'Transformer & Generator Sizing',purpose:'Tính chọn MBA, máy phát',standard:'IEEE, API RP 14F',platform:'Excel',output:'Sizing calc',priority:'Trung bình',estWeeks:3,progress:0,remark:''},
+{disc:'Electrical',tool:'Lighting Lux Quick Check',purpose:'Kiểm tra nhanh độ rọi',standard:'API RP 14F',platform:'Excel',output:'Lighting check',priority:'Thấp',estWeeks:1,progress:0,remark:''},
+{disc:'Instrument & Telecom',tool:'Instrument Datasheet Generator',purpose:'Sinh datasheet hàng loạt từ CSDL',standard:'ISA 5.1 / AVEVA / SPI',platform:'Excel/Access',output:'Datasheet bộ',priority:'Cao',estWeeks:4,progress:0,remark:''},
+{disc:'Instrument & Telecom',tool:'Control Valve & RO Sizing',purpose:'Tính van điều khiển, RO',standard:'ISA 75, API 520 / IEC',platform:'Excel / Instrucalc',output:'Sizing sheet',priority:'Cao',estWeeks:4,progress:0,remark:''},
+{disc:'Instrument & Telecom',tool:'Flow orifice Calculation',purpose:'Tính Orifice',standard:'ISA 75',platform:'Excel / Instrucalc',output:'Sizing sheet',priority:'Cao',estWeeks:12,progress:0,remark:''},
+{disc:'Instrument & Telecom',tool:'Safety Valve Sizing',purpose:'Tính van an toàn',standard:'API 520',platform:'Excel / Instrucalc',output:'Sizing sheet',priority:'Cao',estWeeks:12,progress:0,remark:''},
+{disc:'Instrument & Telecom',tool:'Level Calculation',purpose:'Tình Level Cho bồn bể',standard:'API 551',platform:'Excel',output:'Sizing sheet',priority:'Cao',estWeeks:12,progress:0,remark:''},
+{disc:'Instrument & Telecom',tool:'Instrument Air Assumption',purpose:'Tính mức air tiêu thụ cho thiết bị instrument',standard:'Project spec',platform:'Excel',output:'Sizing sheet',priority:'Cao',estWeeks:12,progress:0,remark:''},
+{disc:'Instrument & Telecom',tool:'Power Estimation Calculation',purpose:'Tính công suất tiêu thụ cho thiết bị instrument',standard:'Project spec',platform:'Excel',output:'Sizing sheet',priority:'Cao',estWeeks:12,progress:0,remark:''},
+{disc:'Instrument & Telecom',tool:'Intrinsically Safe (IS) calculation',purpose:'Tính độ an toàn cho mạch IS',standard:'IEC 60079-11',platform:'Excel',output:'Sizing sheet',priority:'Cao',estWeeks:12,progress:0,remark:''},
+{disc:'Instrument & Telecom',tool:'Weigh Estimation Assumption',purpose:'Tính khối lượng cho input tới các bộ phận khác.',standard:'Project spec',platform:'Excel',output:'Sizing sheet',priority:'Cao',estWeeks:12,progress:0,remark:''},
+{disc:'Instrument & Telecom',tool:'Cable Schedule & I/O List',purpose:'Lập cable schedule, I/O count',standard:'Project spec',platform:'Excel',output:'I/O list, cable sched.',priority:'Cao',estWeeks:4,progress:0,remark:''},
+{disc:'Instrument & Telecom',tool:'F&G Coverage / Detector Mapping',purpose:'Tính phủ sóng F&G, bố trí detector',standard:'API RP 14G, NFPA 72, ISA',platform:'Excel',output:'Layout calc',priority:'Trung bình',estWeeks:3,progress:0,remark:''}
+];
+
+const SEED_EQUIPMENT = [
+{group:'A. Thiết bị cá nhân',item:'Laptop làm việc (online)',desc:'',unit:'bộ',qty:15,purpose:'Công việc văn phòng, email, online, họp',note:'Tất các các leader đều đã có laptop.'},
+{group:'A. Thiết bị cá nhân',item:'Desktop làm việc (online)',desc:'',unit:'bộ',qty:70,purpose:'',note:'Đã lập PYCC 70 bộ, dự tính về tháng 7 được 20 bộ để lắp.'},
+{group:'A. Thiết bị cá nhân',item:'Desktop làm việc (online)',desc:'',unit:'bộ',qty:10,purpose:'',note:'Đã lắp đặt cho tổ thiết kế'},
+{group:'A. Thiết bị cá nhân',item:'Desktop thiết kế (KHÔNG nối mạng)',desc:'',unit:'bộ',qty:70,purpose:'Chạy phần mềm thiết kế nặng, bảo mật dữ liệu',note:'Air-gap, chỉ chạy SW thiết kế | Đã lập PYCC 70 bộ'},
+{group:'A. Thiết bị cá nhân',item:'Màn hình độ phân giải cao',desc:'',unit:'cái',qty:140,purpose:'Thiết kế CAD/3D độ chính xác cao',note:'02 màn hình/người thiết kế | Đã lập PYCC'},
+{group:'A. Thiết bị cá nhân',item:'Màn hình độ phân giải cao',desc:'',unit:'cái',qty:20,purpose:'Thiết kế CAD/3D độ chính xác cao',note:'Đã lắp đặt cho tổ thiết kế'},
+{group:'B. Thiết bị khảo sát',item:'Máy quét laser 3D (3D Laser Scanner)',desc:'Nâng cấp thiết bị hiện có (Leica + Cyclone)',unit:'bộ',qty:1,purpose:'Khảo sát brownfield, as-built 3D point cloud',note:'POS đã có, cần NÂNG CẤP'},
+{group:'B. Thiết bị khảo sát',item:'Drone khảo sát',desc:'UAV chụp ảnh/quét, có camera độ phân giải cao',unit:'bộ',qty:2,purpose:'Khảo sát kết cấu trên cao, topside',note:'Phục vụ EPIC brownfield'},
+{group:'B. Thiết bị khảo sát',item:'Laptop khảo sát hiện trường (rugged)',desc:'Laptop bền, pin lâu, xử lý point cloud cơ bản',unit:'bộ',qty:2,purpose:'Thu thập & xử lý dữ liệu tại site',note:'Đã lập PYCC, chờ có dự án mới triển khai mua.'},
+{group:'B. Thiết bị khảo sát',item:'Thiết bị đo hiện trường',desc:'Máy đo khoảng cách laser, thước, total station',unit:'bộ',qty:1,purpose:'Đo kiểm tie-in, kích thước hiện trường',note:'—'}
+];
+
+const SEED_SOFTWARE = [
+{disc:'Process',name:'Aspen HYSYS & Flarenet',func:'Mô phỏng công nghệ steady/dynamic',vendor:'AspenTech',standard:'GPSA, API RP 14E',qty:1,status:'Mua khi có dự án EPC',note:'Chỉ khi có dự án EPC của POS'},
+{disc:'Process',name:'FlareSim',func:'Tính toán hệ flare, relief',vendor:'Sphera/AspenTech',standard:'API 521/537',qty:1,status:'Mua khi có dự án EPC',note:'Chỉ khi có dự án EPC của POS'},
+{disc:'Process',name:'PIPENET',func:'Mô phỏng mạng đường ống, firewater',vendor:'Sunrise Systems',standard:'NFPA, API 14G',qty:1,status:'Mua khi có dự án EPC',note:'Chỉ khi có dự án EPC của POS'},
+{disc:'Process',name:'PHAST',func:'Phân tích hậu quả cháy nổ, phát tán khí',vendor:'DNV',standard:'NFPA',qty:1,status:'Mua khi có dự án EPC',note:'Chỉ khi có dự án EPC của POS'},
+{disc:'Mechanical',name:'PVElite',func:'Tính toán bình áp lực',vendor:'Hexagon (PV Fab.)',standard:'ASME VIII Div 1/2',qty:1,status:'POS hiện có',note:'v2024/26'},
+{disc:'Mechanical',name:'ANSYS Mechanical',func:'FEA tĩnh/động, nozzle load, rung động',vendor:'ANSYS',standard:'ASME VIII, API',qty:1,status:'Mua khi có dự án EPC',note:'Chỉ khi có dự án EPC của POS'},
+{disc:'Mechanical',name:'HTRI / Aspen EDR',func:'Thiết kế trao đổi nhiệt',vendor:'HTRI/AspenTech',standard:'TEMA, API 660',qty:1,status:'Mua khi có dự án EPC',note:'Chỉ khi có dự án EPC của POS'},
+{disc:'Piping',name:'CAESAR II',func:'Phân tích ứng suất ống (above water)',vendor:'Hexagon (PV Fab.)',standard:'ASME B31.3',qty:2,status:'POS hiện có',note:'v2014, cần nâng cấp'},
+{disc:'Piping',name:'AVEVA E3D / PDMS',func:'Mô hình 3D piping/equipment',vendor:'AVEVA',standard:'—',qty:1,status:'Mua khi có dự án EPC',note:'Chỉ khi có dự án EPC của POS'},
+{disc:'Piping',name:'SmartPlant Spoolgen',func:'Quản lý & shopdrawing piping',vendor:'Hexagon',standard:'ASME B31.3',qty:'',status:'POS hiện có',note:'v2020'},
+{disc:'Piping',name:'AutoCAD 3D',func:'-',vendor:'Autodesk',standard:'—',qty:4,status:'Đang tiến hành mua',note:'Đã ra phiếu 13/05/2026'},
+{disc:'Pipeline',name:'OrcaFlex',func:'Phân tích kết cấu biển/riser động',vendor:'Orcina',standard:'API RP 2RD, DNV F201',qty:1,status:'POS hiện có',note:'XLHH'},
+{disc:'Pipeline',name:'OFFpipe',func:'Tính toán lay pipe',vendor:'—',standard:'DNV-ST-F101',qty:1,status:'POS hiện có',note:'v2019'},
+{disc:'Pipeline',name:'OLGA',func:'Flow assurance đa pha',vendor:'Schlumberger',standard:'API RP 14E',qty:1,status:'Mua khi có dự án EPC',note:'Chỉ khi có dự án EPC của POS'},
+{disc:'Structural / Civil',name:'SACS',func:'Tính toán kết cấu biển (jacket/topside)',vendor:'Bentley',standard:'API RP 2A',qty:1,status:'POS hiện có',note:'XLCN, v2014'},
+{disc:'Structural / Civil',name:'STAAD.Pro',func:'Tính toán kết cấu onshore/module',vendor:'Bentley',standard:'AISC 360, ASCE 7',qty:1,status:'POS hiện có',note:'STAAD III cũ cần nâng cấp'},
+{disc:'Structural / Civil',name:'ANSYS',func:'Phân tích phi tuyến, mỏi chi tiết',vendor:'ANSYS',standard:'API RP 2A',qty:1,status:'Mua khi có dự án EPC',note:'Chỉ khi có dự án EPC của POS'},
+{disc:'Structural / Civil',name:'MOSES',func:'Mô phỏng floating/transport',vendor:'Bentley',standard:'—',qty:2,status:'POS hiện có',note:'XLHH'},
+{disc:'Instrument & Telecom',name:'INSTRUCALC',func:'Tính RO, PSV, control valve sizing',vendor:'—',standard:'ISA 75, API 520',qty:1,status:'Mua khi có dự án EPC',note:'v9.0, Chỉ khi có dự án EPC của POS'},
+{disc:'Instrument & Telecom',name:'SmartPlant Instrumentation (SPI)',func:'Quản lý CSDL instrument, loop',vendor:'Hexagon',standard:'ISA 5.1',qty:1,status:'Mua khi có dự án EPC',note:'Chỉ khi có dự án EPC của POS'},
+{disc:'All disciplines',name:'AutoCAD LT',func:'Tạo & chỉnh sửa bản vẽ 2D',vendor:'Autodesk',standard:'—',qty:'',status:'',note:'v2017'},
+{disc:'All disciplines',name:'Navisworks 3D manage',func:'Review mô hình 3D, clash detection',vendor:'Autodesk',standard:'—',qty:13,status:'Đang tiến hành mua',note:'Đã ra phiếu 13/05/2026'},
+{disc:'All disciplines',name:'Leica Cyclone',func:'Xử lý dữ liệu laser scan 3D',vendor:'Leica',standard:'—',qty:1,status:'POS hiện có',note:'Kèm máy 3D scanner'},
+{disc:'All disciplines',name:'Office 365',func:'Word, excel, ppt',vendor:'Microsoft',standard:'-',qty:53,status:'Đang tiến hành mua',note:'IT báo đang trình kí'},
+{disc:'All disciplines',name:'Snag IT',func:'Chụp màn hình',vendor:'-',standard:'-',qty:14,status:'Đang tiến hành mua',note:'IT báo dự kiến 17/6 giao về'},
+{disc:'All disciplines',name:'PDF xChange Pro',func:'phần mềm đọc pdf',vendor:'',standard:'',qty:53,status:'Đang tiến hành mua',note:'IT báo dự kiến 20/giao về'},
+{disc:'All disciplines',name:'Pipedata pro',func:'Tra cứu đương ống',vendor:'-',standard:'-',qty:13,status:'Đang tiến hành mua',note:'Đã ra phiếu 13/05/2026'},
+{disc:'All disciplines',name:'MS team',func:'-',vendor:'-',standard:'-',qty:52,status:'Đang tiến hành mua',note:'Đã ra phiếu 13/05/2026'},
+{disc:'Pipeline',name:'OrcaLay',func:'Phân tích lắp đặt ống biển',vendor:'Orcina',standard:'DNV RP-F109/F110',qty:1,status:'POS hiện có',note:'XLHH'},
+{disc:'Mechanical',name:'Autodesk Inventor',func:'Thiết kế 3D cơ khí',vendor:'Autodesk',standard:'—',qty:1,status:'Mua khi có dự án EPC',note:'Chỉ khi có dự án EPC của POS'},
+{disc:'Instrument & Telecom',name:'AVEVA Instrument',func:'Quản lý CSDL instrument',vendor:'AVEVA',standard:'ISA 5.1',qty:1,status:'Mua khi có dự án EPC',note:'Chỉ khi có dự án EPC của POS'},
+{disc:'Pipeline',name:'DNV tool',func:'Tính toán đường ống theo DNV',vendor:'DNV',standard:'DNV-ST-F101',qty:1,status:'Mua khi có dự án EPC',note:'Chỉ khi có dự án EPC của POS'}
+];
+
+const SEED_STANDARDS = [
+{code:'ASME B31.4',edition:'2022 Edition',org:'ASME',category:'Pipeline Design & Systems',fullname:'Pipeline Transportation Systems for Liquids and Slurries',disc:'Pipeline',related:'Piping, Process',status:'Active',scope:'The primary US code governing the design, materials, construction, assembly, inspection, and testing of onshore pipeline systems transporting liquid hydrocarbons and slurries.'},
+{code:'ASME B31.8',edition:'2022 Edition',org:'ASME',category:'Pipeline Design & Systems',fullname:'Gas Transmission and Distribution Piping Systems',disc:'Pipeline',related:'Piping, Process',status:'Active',scope:'The definitive US code covering design, fabrication, installation, inspection, testing, and safety aspects of gas transmission lines and distribution networks.'},
+{code:'API RP 1111',edition:'2015 (R2021)',org:'API',category:'Pipeline Design & Systems',fullname:'Design, Construction, Operation, and Maintenance of Offshore Hydrocarbon Pipelines',disc:'Pipeline',related:'',status:'Active',scope:'Reaffirmed 2021. Establishes the standard limit-state criteria, combined load calculations, hydrostatic testing parameters, and design bounds for offshore/subsea steel pipelines.'},
+{code:'ISO 13623',edition:'2017 Edition',org:'ISO',category:'Pipeline Design & Systems',fullname:'Petroleum and natural gas industries — Pipeline transportation systems',disc:'Pipeline',related:'',status:'Active',scope:'The global international standard establishing functional requirements for pipeline systems used for transportation in the petroleum and natural gas industries. Deeply aligned with ASME B31 codes.'},
+{code:'API RP 2RD',edition:'2020 (2nd Ed)',org:'API',category:'Pipeline Design & Systems',fullname:'Dynamic Risers for Floating Production Systems',disc:'Pipeline',related:'',status:'Active',scope:'Governs severe dynamic performance, structural limitations, and design criteria for subsea riser elements interfacing between floating host units and sea floor assets.'},
+{code:'API Spec 5L',edition:'2026 (47th Ed)',org:'API',category:'Line Pipes & Materials',fullname:'Specification for Line Pipe',disc:'Pipeline',related:'Piping',status:'Active',scope:'Latest version published June 2, 2026. The absolute global manufacturing standard specifying grades, mechanical criteria, and chemistry tolerances for seamless and welded line pipes (including strict requirements for hydrogen and carbon dioxide carriers).'},
+{code:'ISO 3183',edition:'2019 Edition',org:'ISO',category:'Line Pipes & Materials',fullname:'Petroleum and natural gas industries — Steel pipe for pipeline transportation systems',disc:'Pipeline',related:'',status:'Active',scope:'International standard establishing technical delivery conditions for steel line pipes, maintaining harmonic parity with API Spec 5L product specification levels (PSL 1 and PSL 2).'},
+{code:'ASTM A106/A106M',edition:'2019 Edition',org:'ASTM',category:'Line Pipes & Materials',fullname:'Standard Specification for Seamless Carbon Steel Pipe for High-Temperature Service',disc:'Pipeline',related:'',status:'Active',scope:'Covers seamless carbon steel pipe for high-temperature and high-pressure gathering networks or process tie-ins.'},
+{code:'ASTM A333/A333M',edition:'2021 Edition',org:'ASTM',category:'Line Pipes & Materials',fullname:'Standard Specification for Seamless and Welded Steel Pipe for Low-Temperature Service',disc:'Pipeline',related:'',status:'Active',scope:'Specifies structural and impact toughness requirements for seamless and welded steel pipes used in sub-zero environments or cold climates.'},
+{code:'ISO 21809-1',edition:'2018 Edition',org:'ISO',category:'Line Pipes & Materials',fullname:'External coatings for buried or submerged pipelines — Part 1: Polyolefin coatings (3-layer PE and 3-layer PP)',disc:'Pipeline',related:'',status:'Active',scope:'The standard governing manufacturing, application, and test parameters of three-layer polyethylene (3LPE) and three-layer polypropylene (3LPP) external anti-corrosion protection coatings.'},
+{code:'API Std 1104',edition:'2021 (22nd Ed)',org:'API',category:'Construction & Installation',fullname:'Welding of Pipelines and Related Facilities',disc:'Pipeline',related:'',status:'Active',scope:'The paramount US welding standard governing gas and arc welding of butt and fillet welds in carbon and low-alloy steel pipelines. Covers WPS/PQR, welder qualifications, and NDT acceptance boundaries.'},
+{code:'ISO 13847',edition:'2013 Edition',org:'ISO',category:'Construction & Installation',fullname:'Petroleum and natural gas industries — Pipeline transportation systems — Welding of pipelines',disc:'Pipeline',related:'',status:'Active',scope:'Specifies requirements for the execution, testing, and documentation of welding operations for pipeline systems, complementing international project scopes.'},
+{code:'API RP 1102',edition:'2007 (R2017)',org:'API',category:'Construction & Installation',fullname:'Steel Pipelines Crossing Railroads and Highways',disc:'Pipeline',related:'',status:'Active',scope:'Provides standard cross-sectional stress calculation methods and structural layout requirements for buried pipelines routed underneath highway and rail infrastructure.'},
+{code:'ISO 14723',edition:'2009 Edition',org:'ISO',category:'Construction & Installation',fullname:'Petroleum and natural gas industries — Pipeline transportation systems — Subsea pipeline valves',disc:'Pipeline',related:'',status:'Active',scope:'Specifies essential requirements and manufacturing test boundaries for subsea pipeline valves (gate, ball, check types) integrated into pipeline networks.'},
+{code:'API RP 1110',edition:'2013 (R2018)',org:'API',category:'Inspection, Testing & Integrity',fullname:'Pressure Testing of Steel Pipelines for the Transportation of Gas, Petroleum Gas, Hazardous Liquids, Highly Volatile Liquids, or Carbon Dioxide',disc:'Pipeline',related:'',status:'Active',scope:'Establishes critical safety guidelines, pressure test duration, and leakage hold-time parameters during hydro-testing operations.'},
+{code:'API Std 1163',edition:'2021 (3rd Ed)',org:'API',category:'Inspection, Testing & Integrity',fullname:'In-line Inspection Systems Qualification',disc:'Pipeline',related:'',status:'Active',scope:'Governs systems qualification, data analysis verification, tool accuracy tolerances, and reporting metrics for Intelligent Pigging operations (ILI tools).'},
+{code:'ASME B31.8S',edition:'2022 Edition',org:'ASME',category:'Inspection, Testing & Integrity',fullname:'Managing System Integrity of Gas Pipelines',disc:'Pipeline',related:'Piping, Process',status:'Active',scope:'Prescribes comprehensive integrity management program frameworks, risk assessments, threat classification, and remediation parameters for active gas transmission assets.'},
+{code:'ISO 15589-1',edition:'2015 Edition',org:'ISO',category:'Inspection, Testing & Integrity',fullname:'Cathodic protection of pipeline systems — Part 1: On-shore pipelines',disc:'Pipeline',related:'',status:'Active',scope:'Provides structural parameters and operational validation guidelines for implementing cathodic protection against corrosion on buried onshore pipelines.'},
+{code:'ISO 15589-2',edition:'2012 Edition',org:'ISO',category:'Inspection, Testing & Integrity',fullname:'Cathodic protection of pipeline systems — Part 2: Offshore pipelines',disc:'Pipeline',related:'',status:'Active',scope:'Governs engineering design, current calculation margins, and sacrificial anode installation criteria for subsea offshore pipelines.'},
+{code:'API RP 1104 (Section 8)',edition:'2021 Edition',org:'API',category:'Inspection, Testing & Integrity',fullname:'Inspection and Testing of Production Welds',disc:'Pipeline',related:'',status:'Active',scope:'Section 8 of API 1104 dictates explicit acceptance criteria for visual testing (VT), radiographic testing (RT), and automatic ultrasonic testing (AUT) for field line production welds.'},
+{code:'BS EN ISO 13628-8:2006',edition:'2026',org:'ISO',category:'Subsea Systems',fullname:'Petroleum and natural gas industries — Design and operation of subsea production systems — Part 8: Remotely Operated Vehicle (ROV) interfaces on subsea production systems',disc:'Pipeline',related:'',status:'Active',scope:'Defines ROV interface requirements for subsea production system components.'},
+{code:'DNV-ST-F101',edition:'2021 Edition',org:'DNV',category:'Pipeline Design & Systems',fullname:'Submarine pipeline systems',disc:'Pipeline',related:'',status:'Active',scope:'The definitive supreme structural and mechanical code for submarine pipeline systems. Outlines extensive rules for limit-state criteria, material configurations, safety factors, and construction parameters.'},
+{code:'DNV-ST-F201',edition:'2020 Edition',org:'DNV',category:'Pipeline Design & Systems',fullname:'Dynamic risers',disc:'Pipeline',related:'',status:'Active',scope:'Specifies structural design requirements and load criteria for subsea dynamic riser systems, top-tensioned systems, and dynamic flexible ties linked to floating host structures.'},
+{code:'DNV-RP-F109',edition:'2021 Edition',org:'DNV',category:'Hydrodynamics & Mechanics',fullname:'On-bottom stability design of submarine pipelines',disc:'Pipeline',related:'',status:'Active',scope:'Provides comprehensive technical methods and recommended practices for calculating lateral and vertical on-bottom stability limits of submarine pipelines against wave and current hydrodynamic forces.'},
+{code:'DNV-RP-F105',edition:'2019 Edition',org:'DNV',category:'Hydrodynamics & Mechanics',fullname:'Free spanning pipelines',disc:'Pipeline',related:'',status:'Active',scope:'Governs safety limits and fatigue calculations for open subsea spans subjected to Vortex-Induced Vibrations (VIV) and cyclic structural wave action.'},
+{code:'DNV-RP-F110',edition:'2022 Edition',org:'DNV',category:'Hydrodynamics & Mechanics',fullname:'Global buckling of submarine pipelines',disc:'Pipeline',related:'',status:'Active',scope:'Provides detailed criteria and structural evaluation mechanics for managing global thermal and high-pressure buckling tendencies in deepwater pipelines.'},
+{code:'DNV-RP-F116',edition:'2021 Edition',org:'DNV',category:'Integrity & Corrosion Control',fullname:'Integrity management of submarine pipeline systems',disc:'Pipeline',related:'',status:'Active',scope:'Establishes a rigorous recommended practice framework for risk-based asset integrity management (RBIM), including internal/external line anomaly mitigation and survey execution intervals.'},
+{code:'DNV-RP-F112',edition:'2021 Edition',org:'DNV',category:'Integrity & Corrosion Control',fullname:'Design of duplex stainless steel subsea equipment to resist hydrogen induced stress cracking (HISC)',disc:'Pipeline',related:'',status:'Active',scope:'Specifies explicit limits and design safety configurations to systematically defend duplex and super duplex pipeline joints from HISC risks initiated by cathodic protection loads.'},
+{code:'DNV-RP-F103',edition:'2021 Edition',org:'DNV',category:'Integrity & Corrosion Control',fullname:'Cathodic protection of submarine pipelines',disc:'Pipeline',related:'',status:'Active',scope:'Recommended practice detailing galvanic anode design calculations, specific current density requirements, and installation bounds for marine subsea carriers.'},
+{code:'DNV-RP-F101',edition:'2022 Edition',org:'DNV',category:'Integrity & Corrosion Control',fullname:'Corroded pipelines',disc:'Pipeline',related:'',status:'Active',scope:'The standard global guide governing structural fitness-for-service evaluation of actively corroded wall thicknesses under internal internal pressure and external loads.'},
+{code:'DNV-RP-F107',edition:'2021 Edition',org:'DNV',category:'Risk & Subsea Intervention',fullname:'Risk assessment of pipeline protection',disc:'Pipeline',related:'',status:'Active',scope:'Prescribes explicit risk matrices, probability modeling, and physical structural criteria for pipelines endangered by external threats like trawl gear hooking or vessel dropped objects.'},
+{code:'DNV-RP-F113',edition:'2024 Edition',org:'DNV',category:'Risk & Subsea Intervention',fullname:'Pipeline subsea repair',disc:'Pipeline',related:'',status:'Active',scope:'Newly revised document governing the exact design parameters, mechanical clamp testing, subsea tie-in isolations, and localized structural restoration for damaged lines.'},
+{code:'DNV-RP-F111',edition:'2017',org:'DNV',category:'',fullname:'Interference between trawl gear and pipelines',disc:'Pipeline',related:'',status:'Active',scope:''},
+{code:'DNV-RP-C205',edition:'2021',org:'DNV',category:'',fullname:'Environmental Conditions and Environmental Loads',disc:'Pipeline',related:'',status:'Active',scope:''},
+{code:'NFPA 70 (NEC)',edition:'2026 Edition',org:'NFPA',category:'Area Classification & Safety',fullname:'National Electrical Code',disc:'Electrical',related:'',status:'Active',scope:'The premier national standard governing safe electrical installations. Revisions include robust safety modifications for energy storage systems and alternative fuels within classified industrial sectors.'},
+{code:'NFPA 497',edition:'2024 Edition',org:'NFPA',category:'Area Classification & Safety',fullname:'Recommended Practice for the Classification of Flammable Liquids, Gases, or Vapors and of Hazardous (Classified) Locations for Electrical Installations in Chemical Process Areas',disc:'Electrical',related:'',status:'Active',scope:'Provides parameters to systematically evaluate process areas and classify Class I hazardous locations, determining proper electrical explosion-proof configurations.'},
+{code:'API RP 500',edition:'2023 (4th Ed)',org:'API',category:'Area Classification & Safety',fullname:'Recommended Practice for Classification of Locations for Electrical Installations at Petroleum Facilities Classified as Class I, Division 1 and Division 2',disc:'Electrical',related:'',status:'Active',scope:'Establishes specific guidelines for evaluating and mapping Division-based hazardous zones across upstream, midstream, and downstream refinery oil & gas complexes.'},
+{code:'API RP 505',edition:'2018 (2nd Ed, R2024)',org:'API',category:'Area Classification & Safety',fullname:'Recommended Practice for Classification of Locations for Electrical Installations at Petroleum Facilities Classified as Class I, Zone 0, Zone 1, and Zone 2',disc:'Electrical',related:'',status:'Active',scope:'Reaffirmed with updates in 2024. Dictates the alternative three-zone international mapping system for classifying hazardous gas and vapor release environments.'},
+{code:'NFPA 70E',edition:'2024 Edition',org:'NFPA',category:'Area Classification & Safety',fullname:'Standard for Electrical Safety in the Workplace',disc:'Electrical',related:'',status:'Active',scope:'Establishes mandatory protocols to protect personnel from arc flash boundaries, shock hazards, and dictates Personal Protective Equipment (PPE) specifications during operation and checkout.'},
+{code:'API RP 14F',edition:'2023 (6th Ed)',org:'API',category:'Offshore Power Systems Design',fullname:'Recommended Practice for Design and Installation of Electrical Systems for Fixed and Floating Offshore Petroleum Facilities for Unclassified and Class I, Division 1 and Division 2 Locations',disc:'Electrical',related:'',status:'Active',scope:'The baseline standard for electrical engineering on offshore rigs and jackets, addressing high-salinity and vibration-prone marine installation issues under the Division format.'},
+{code:'API RP 14FZ',edition:'2023 (3rd Ed)',org:'API',category:'Offshore Power Systems Design',fullname:'Recommended Practice for Design and Installation of Electrical Systems for Fixed and Floating Offshore Petroleum Facilities for Unclassified and Class I, Zone 0, Zone 1, and Zone 2 Locations',disc:'Electrical',related:'',status:'Active',scope:'Governs offshore facility electrical design, configuration, and cable distribution management utilizing the Zone classification approach.'},
+{code:'IEEE Std 45.1',edition:'2021 Edition',org:'IEEE',category:'Offshore Power Systems Design',fullname:'Recommended Practice for Electrical Installations on Shipboard—Design',disc:'Electrical',related:'',status:'Active',scope:'Commonly referenced during the design of Floating Production Storage and Offloading (FPSO) vessels and specialized marine platform modules.'},
+{code:'IEEE Std 3001.11',edition:'2022 Edition',org:'IEEE',category:'Power Systems Design & Analysis',fullname:'Recommended Practice for Testing and Commissioning of Industrial and Commercial Power Systems',disc:'Electrical',related:'',status:'Active',scope:'Part of the modernized IEEE 3000 series (replacing old Color Books), defining strict parameters for industrial grid stability, load flow studies, and power quality validation.'},
+{code:'IEEE Std 1584',edition:'2018 (2nd Ed, R2024)',org:'IEEE',category:'Power Systems Design & Analysis',fullname:'Guide for Performing Arc-Flash Hazard Calculations',disc:'Electrical',related:'',status:'Active',scope:'Reaffirmed 2024. Outlines the mandatory mathematical models and simulation boundaries required to evaluate potential arc flash incident energy levels across plant switchgear.'},
+{code:'IEEE Std 142',edition:'2007 (R2023)',org:'IEEE',category:'Power Systems Design & Analysis',fullname:'Recommended Practice for Grounding of Industrial and Commercial Power Systems (Green Book)',disc:'Electrical',related:'',status:'Active',scope:'Reaffirmed in 2023. Provides critical guidelines for system grounding, equipment bonding, and static charge dissipation rules in petrochemical facilities.'},
+{code:'UL 508A',edition:'2022 Edition',org:'UL',category:'Equipment Manufacturing Specs',fullname:'Standard for Industrial Control Panels',disc:'Electrical',related:'',status:'Active',scope:'Governs the manufacturing, internal wiring selection, short-circuit current ratings (SCCR), and safety listings for industrial custom control panels and marshalling boxes.'},
+{code:'UL 121201',edition:'2019 (9th Ed, R2023)',org:'UL',category:'Equipment Manufacturing Specs',fullname:'Nonincendive Electrical Equipment for Use in Class I and II, Division 2 and Class III, Divisions 1 and 2 Hazardous (Classified) Locations',disc:'Electrical',related:'Instrument & Control',status:'Active',scope:'The critical standard validating that electrical assemblies will not cause ignition under normal operating conditions within Division 2 areas.'},
+{code:'NEMA ICS 6',edition:'2020 Edition',org:'NEMA',category:'Equipment Manufacturing Specs',fullname:'Industrial Control and Systems: Enclosures',disc:'Electrical',related:'',status:'Active',scope:'Defines standard ingress protection parameters, structural thresholds, and corrosion-resistance scales for NEMA-rated enclosures (e.g., NEMA 4X, NEMA 7 for explosion-proof).'},
+{code:'NEMA VE 1',edition:'2017 (R2022)',org:'NEMA',category:'Equipment Manufacturing Specs',fullname:'Metal Cable Tray Systems',disc:'Electrical',related:'',status:'Active',scope:'Covers manufacturing thresholds, load capacity profiles, and deflection boundaries for metallic ladder-type cable trays utilized for high-density plant cabling.'},
+{code:'NECA 1',edition:'2024 Edition',org:'NECA',category:'Installation & Site Erection',fullname:'Standard for Good Workmanship in Electrical Construction',disc:'Electrical',related:'',status:'Active',scope:'Defines the benchmark criteria for clear, structured, and compliant electrical installation practices across global construction sites.'},
+{code:'NEMA VE 2',edition:'2022 Edition',org:'NEMA',category:'Installation & Site Erection',fullname:'Cable Tray Installation Guidelines',disc:'Electrical',related:'',status:'Active',scope:'The definitive field manual governing cable tray installation, structural support spacing, grounding bonds, and thermal expansion joint setups.'},
+{code:'NETA ATS',edition:'2025 Edition',org:'NETA',category:'Inspection, Testing & Commissioning',fullname:'Standard for Acceptance Testing Specifications for Electrical Power Equipment and Systems',disc:'Electrical',related:'',status:'Active',scope:'The supreme field reference manual prescribing mandatory insulation resistance (Megger), high-potential (Hi-Pot), and contact resistance testing bounds before plant energization.'},
+{code:'NETA MTS',edition:'2023 Edition',org:'NETA',category:'Inspection, Testing & Commissioning',fullname:'Standard for Maintenance Testing Specifications for Electrical Power Equipment and Systems',disc:'Electrical',related:'',status:'Active',scope:'Regulates preventive diagnostic testing procedures and degradation evaluation limits for energized industrial electrical components.'},
+{code:'IEEE Std 400',edition:'2023 Edition',org:'IEEE',category:'Inspection, Testing & Commissioning',fullname:'Guide for Field Testing and Evaluation of the Insulation of Shielded Power Cable Systems Rated 5 kV and Above',disc:'Electrical',related:'',status:'Active',scope:'Outlines standard technical methodology for VLF (Very Low Frequency) and partial discharge testing of medium-voltage plant power cables.'},
+{code:'ASME B31.3',edition:'2024',org:'ASME',category:'Design & Dimensional Specifications',fullname:'Process Piping',disc:'Piping',related:'Process',status:'Active',scope:'The overarching standard governing the design, materials, fabrication, assembly, erection, examination, and testing of process piping systems in petroleum refineries, chemical, pharmaceutical, and related plants.'},
+{code:'ASME B36.10M',edition:'2022',org:'ASME',category:'Design & Dimensional Specifications',fullname:'Welded and Seamless Wrought Steel Pipe',disc:'Piping',related:'',status:'Active',scope:'Standardizes dimensions, outside diameters (OD), and schedule (wall thickness) for carbon and alloy steel pipes.'},
+{code:'ASME B36.19M',edition:'2022',org:'ASME',category:'Design & Dimensional Specifications',fullname:'Welded and Seamless Wrought Stainless Steel Pipe',disc:'Piping',related:'',status:'Active',scope:'Standardizes dimensions and wall thickness specifically for stainless steel pipes (identified by an \'S\' suffix, e.g., Sch 10S, 40S).'},
+{code:'API Spec 5L',edition:'2026 (47th Ed)',org:'API',category:'Design & Dimensional Specifications',fullname:'Specification for Line Pipe',disc:'Piping',related:'Pipeline / Subsea',status:'Active',scope:'Latest edition published June 2, 2026. Specifies requirements for the manufacture of seamless and welded steel pipes for pipeline transportation systems in the petroleum and natural gas industries, including strict requirements for CO2 pipelines.'},
+{code:'ASME B16.5',edition:'2025',org:'ASME',category:'Flanges, Valves & Piping Components',fullname:'Pipe Flanges and Flanged Fittings: NPS 1/2 through NPS 24 Metric/Inch Standard',disc:'Piping',related:'',status:'Active',scope:'Dimensional, material, testing, and pressure-temperature rating standard for pipe flanges and flanged fittings (Class 150 to 2500).'},
+{code:'ASME B16.47',edition:'2025',org:'ASME',category:'Flanges, Valves & Piping Components',fullname:'Large Diameter Steel Flanges: NPS 26 through NPS 60 Metric/Inch Standard',disc:'Piping',related:'',status:'Active',scope:'Applies to large diameter steel flanges from NPS 26 through NPS 60, covering Series A and Series B.'},
+{code:'ASME B16.9',edition:'2024',org:'ASME',category:'Flanges, Valves & Piping Components',fullname:'Factory-Made Wrought Buttwelding Fittings',disc:'Piping',related:'',status:'Active',scope:'Covers overall dimensions, tolerances, ratings, testing, and markings for factory-made wrought buttwelding fittings (elbows, tees, reducers, etc.).'},
+{code:'ASME B16.11',edition:'2021',org:'ASME',category:'Flanges, Valves & Piping Components',fullname:'Forged Fittings, Socket-Welding and Threaded',disc:'Piping',related:'',status:'Active',scope:'Covers ratings, dimensions, tolerances, marking and material requirements for forged fittings, both socket-welding and threaded (Class 2000, 3000, 6000, 9000).'},
+{code:'ASME B16.20',edition:'2023',org:'ASME',category:'Flanges, Valves & Piping Components',fullname:'Metallic Gaskets for Pipe Flanges',disc:'Piping',related:'',status:'Active',scope:'Comprehensive standard covering materials, dimensions, and tolerances for metallic ring-joint, spiral-wound, and grooved gaskets.'},
+{code:'ASME B16.21',edition:'2021',org:'ASME',category:'Flanges, Valves & Piping Components',fullname:'Nonmetallic Flat Gaskets for Pipe Flanges',disc:'Piping',related:'',status:'Active',scope:'Covers types, sizes, materials, and dimensions of nonmetallic flat gaskets for flanged joints.'},
+{code:'ASME B16.34',edition:'2025',org:'ASME',category:'Flanges, Valves & Piping Components',fullname:'Valves—Flanged, Threaded, and Welding End',disc:'Piping',related:'Process',status:'Active',scope:'Foundational standard covering pressure-temperature ratings, dimensions, tolerances, materials, nondestructive examination requirements, and testing for industrial valves.'},
+{code:'API Spec 6D',edition:'2021 (25th Ed)',org:'API',category:'Flanges, Valves & Piping Components',fullname:'Specification for Valves',disc:'Piping',related:'',status:'Active',scope:'Primary standard for pipeline valves (gate, plug, ball, and check valves) used in petroleum and natural gas industries.'},
+{code:'API Std 598',edition:'2023 (11th Ed)',org:'API',category:'Flanges, Valves & Piping Components',fullname:'Valve Inspection and Testing',disc:'Piping',related:'',status:'Active',scope:'Covers inspection, examination, supplementary examinations, and pressure test (leakage test) requirements for valves.'},
+{code:'ASME BPVC Sec IX',edition:'2025',org:'ASME',category:'Fabrication, Welding & Erection',fullname:'Welding, Brazing, and Fusing Qualifications',disc:'Piping',related:'Mechanical, QA/QC, Structure',status:'Active',scope:'Mandatory requirements for the qualification of welders, welding operators, and welding procedures (WPS, PQR, WPQ) under the Boiler and Pressure Vessel Code.'},
+{code:'AWS D10.10/D10.10M',edition:'2021',org:'AWS',category:'Fabrication, Welding & Erection',fullname:'Recommended Practices for Local Heating of Welds in Piping and Tubing',disc:'Piping',related:'Mechanical, QA/QC, Structure',status:'Active',scope:'Provides recommended practices for local heating of welds in piping (Preheat and Post-Weld Heat Treatment - PWHT) to relieve residual stress.'},
+{code:'API 570',edition:'2024 (5th Ed)',org:'API',category:'Inspection, Testing & Maintenance',fullname:'Piping Inspection Code: In-service Inspection, Rating, Repair, and Alteration of Piping Systems',disc:'Piping',related:'',status:'Active',scope:'Supreme piping inspection code governing in-service inspection, condition rating, repair, and alteration of metallic and FRP piping systems.'},
+{code:'API RP 574',edition:'2024 (5th Ed)',org:'API',category:'Inspection, Testing & Maintenance',fullname:'Inspection Practices for Piping System Components',disc:'Piping',related:'',status:'Active',scope:'Recommended practices for the inspection of piping system components, valves, and fittings, including thickness measurement methods.'},
+{code:'API RP 577',edition:'2020',org:'API',category:'Inspection, Testing & Maintenance',fullname:'Welding Processes, Inspection, and Metallurgy',disc:'Piping',related:'',status:'Active',scope:'Provides guidance on welding processes, inspection methodologies, and metallurgy to resolve welding issues in piping fabrication.'},
+{code:'API RP 578',edition:'2023 (4th Ed)',org:'API',category:'Inspection, Testing & Maintenance',fullname:'Material Verification Program for New and Existing Alloy Piping Systems',disc:'Piping',related:'',status:'Active',scope:'Provides guidelines for a material and quality assurance system to verify the composition of alloy components (PMI - Positive Material Identification).'},
+{code:'ASME BPVC Sec V',edition:'2025',org:'ASME',category:'Inspection, Testing & Maintenance',fullname:'Nondestructive Examination',disc:'Piping',related:'Mechanical, QA/QC, Structure',status:'Active',scope:'Contains requirements and methods for nondestructive examination (NDE/NDT) referenced and required by other ASME construction codes (RT, UT, MT, PT).'},
+{code:'ASNT SNT-TC-1A',edition:'2024',org:'ASNT',category:'Inspection, Testing & Maintenance',fullname:'Personnel Qualification and Certification in Nondestructive Testing',disc:'Piping',related:'Mechanical, QA/QC, Structure',status:'Active',scope:'Provides guidelines for employers to establish in-house certification programs for nondestructive testing (NDT) personnel (Levels I, II, and III).'},
+{code:'GPSA Data Book',edition:'2023 (15th Ed)',org:'GPSA',category:'Process Systems Design & Simulation',fullname:'GPSA Engineering Data Book',disc:'Process',related:'',status:'Active',scope:'The definitive absolute reference manual for process engineers in the oil, gas, and petrochemical industries, covering thermodynamics, fluid flow, gas processing, and core sizing guidelines.'},
+{code:'API RP 14C',edition:'2017 (8th Ed, R2023)',org:'API',category:'Process Systems Design & Simulation',fullname:'Analysis, Design, Installation, and Testing of Safety Systems for Offshore Production Facilities',disc:'Process',related:'Instrument & Control, Safety',status:'Active',scope:'Provides a systematic methodology (SAFE chart) to analyze, design, and configure safety shutdown and process hazard containment systems on offshore platforms.'},
+{code:'API RP 14E',edition:'1991 (5th Ed, R2019)',org:'API',category:'Process Systems Design & Simulation',fullname:'Recommended Practice for Design and Installation of Offshore Production Platform Piping Systems',disc:'Process',related:'',status:'Active',scope:'Widely utilized by process engineers for its foundational fluid velocity criteria, erosion velocity limits (C-factor formulas), and pressure drop calculations for multi-phase flows.'},
+{code:'API Std 520 Part I',edition:'2020 (10th Ed)',org:'API',category:'Pressure Relief & Safety Systems',fullname:'Sizing, Selection, and Sizing of Pressure-Relieving Devices',disc:'Process',related:'',status:'Active',scope:'The global baseline standard for process engineers to perform relief load calculations, vapor/liquid expansion sizing, and select correct relief valve orifices.'},
+{code:'API Std 520 Part II',edition:'2020 (7th Ed)',org:'API',category:'Pressure Relief & Safety Systems',fullname:'Installation of Pressure-Relieving Devices',disc:'Process',related:'',status:'Active',scope:'Governs the critical inlet and outlet hydraulics, 3% pressure drop rules, and configuration of piping attached to relief valves to prevent chattering.'},
+{code:'API Std 521',edition:'2020 (7th Ed)',org:'API',category:'Pressure Relief & Safety Systems',fullname:'Pressure-relieving and Depressuring Systems',disc:'Process',related:'',status:'Active',scope:'Covers the process design of flare headers, knock-out drums, emergency depressurization (blowdown) networks, radiation calculations, and flare sizing criteria.'},
+{code:'API Std 537',edition:'2017 (3rd Ed, R2022)',org:'API',category:'Pressure Relief & Safety Systems',fullname:'Flare Details for Petroleum, Petrochemical, and Natural Gas Industries',disc:'Process',related:'',status:'Active',scope:'Outlines process requirements and mechanical guidelines for the selection, operation, and thermal/hydraulic validation of open flare systems.'},
+{code:'ASME BPVC Sec VIII D1',edition:'2025',org:'ASME',category:'Process Equipment Specifications',fullname:'Rules for Construction of Pressure Vessels - Division 1',disc:'Process',related:'Mechanical, Piping, QA/QC, Structure',status:'Active',scope:'Mandatory code governing the mechanical boundaries, wall thickness, and design pressures for process pressure vessels, separators, and columns.'},
+{code:'ASME BPVC Sec VIII D2',edition:'2025',org:'ASME',category:'Process Equipment Specifications',fullname:'Rules for Construction of Pressure Vessels - Alternative Rules',disc:'Process',related:'Mechanical, Piping, QA/QC, Structure',status:'Active',scope:'Provides advanced, rigorous design-by-analysis rules allowing lower safety factors and optimized wall thicknesses for high-pressure process applications.'},
+{code:'API Std 650',edition:'2020 (13th Ed)',org:'API',category:'Process Equipment Specifications',fullname:'Welded Tanks for Oil Storage',disc:'Process',related:'Mechanical',status:'Active',scope:'Specifies structural and process sizing configurations, materials, and fabrication rules for vertical, cylindrical, aboveground, atmospheric storage tanks.'},
+{code:'API Std 620',edition:'2013 (12th Ed, R2021)',org:'API',category:'Process Equipment Specifications',fullname:'Design and Construction of Large, Welded, Low-pressure Storage Tanks',disc:'Process',related:'',status:'Active',scope:'Governs the design of large tanks subjected to low positive internal gas pressures (up to 15 psig), typically utilized for LNG or volatile intermediate process liquids.'},
+{code:'API Std 660',edition:'2020 (10th Ed)',org:'API',category:'Process Equipment Specifications',fullname:'Shell-and-tube Heat Exchangers',disc:'Process',related:'Mechanical',status:'Active',scope:'Supplements ASME rules by establishing process design constraints, thermal-hydraulic considerations, and fouling factor margins for shell-and-tube exchangers.'},
+{code:'TEMA Standards',edition:'2019 (10th Ed)',org:'TEMA',category:'Process Equipment Specifications',fullname:'Standards of the Tubular Exchanger Manufacturers Association',disc:'Process',related:'Mechanical',status:'Active',scope:'The industry-standard geometric nomenclature, mechanical design rules, and thermal criteria for specifying Class R (Refinery), Class C (Chemical), and Class B process heat exchangers.'},
+{code:'API Std 610',edition:'2021 (12th Ed)',org:'API',category:'Process Equipment Specifications',fullname:'Centrifugal Pumps for Petroleum, Petrochemical, and Natural Gas Industries',disc:'Process',related:'Mechanical',status:'Active',scope:'Defines continuous-duty technical requirements, head/flow characteristics, and process margins for rotating equipment handling flammable hydrocarbons.'},
+{code:'API Std 560',edition:'2016 (5th Ed, R2022)',org:'API',category:'Process Equipment Specifications',fullname:'Fired Heaters for General Refinery Service',disc:'Process',related:'',status:'Active',scope:'Governs the thermal design efficiency, combustion air distribution, tube sizing, and fluid heat flux criteria for refinery furnace systems.'},
+{code:'API 510',edition:'2022 (11th Ed)',org:'API',category:'Fabrication, Inspection & Testing',fullname:'Pressure Vessel Inspection Code: In-service Inspection, Rating, Repair, and Alteration',disc:'Process',related:'',status:'Active',scope:'The ultimate pressure equipment integrity code managing post-fabrication in-service inspections, corrosion rate calculations, and remaining life evaluations.'},
+{code:'API 653',edition:'2014 (5th Ed, Addendum 2021)',org:'API',category:'Fabrication, Inspection & Testing',fullname:'Tank Inspection, Repair, Alteration, and Reconstruction',disc:'Process',related:'',status:'Active',scope:'Regulates structural fitness-for-service, floor settlement monitoring, and wall thickness inspection criteria for active oil storage assets.'},
+{code:'API RP 572',edition:'2021 (4th Ed)',org:'API',category:'Fabrication, Inspection & Testing',fullname:'Inspection Practices for Pressure Vessels',disc:'Process',related:'',status:'Active',scope:'Provides comprehensive instructions for inspectors and process engineers regarding typical degradation mechanisms, internal trays, and demister pad checkouts.'},
+{code:'ASME BPVC Sec V',edition:'2025',org:'ASME',category:'Fabrication, Inspection & Testing',fullname:'Nondestructive Examination',disc:'Process',related:'Mechanical, Piping, QA/QC, Structure',status:'Active',scope:'Mandated for execution guidelines regarding visual, ultrasonic, radiographic, and bubble-leak tests of manufactured chemical process units.'},
+{code:'ASME BPVC Sec VIII Div 1',edition:'2025 Edition',org:'ASME',category:'Static Equipment Design',fullname:'Rules for Construction of Pressure Vessels - Division 1',disc:'Mechanical',related:'Piping, Process, QA/QC, Structure',status:'Active',scope:'Provides mandatory requirements for the design, fabrication, inspection, and testing of pressure vessels operating above 15 psig. Globally applied for separators, towers, and drums.'},
+{code:'ASME BPVC Sec VIII Div 2',edition:'2025 Edition',org:'ASME',category:'Static Equipment Design',fullname:'Rules for Construction of Pressure Vessels - Alternative Rules',disc:'Mechanical',related:'Piping, Process, QA/QC, Structure',status:'Active',scope:'Applies a rigorous \'Design-by-Analysis\' methodology for higher-pressure or more critical refinery and offshore platform process vessels, allowing optimized wall thicknesses.'},
+{code:'ASME BPVC Sec I',edition:'2025 Edition',org:'ASME',category:'Static Equipment Design',fullname:'Rules for Construction of Power Boilers',disc:'Mechanical',related:'',status:'Active',scope:'Covers the essential rules for the design, fabrication, and assembly of high-pressure steam power boilers and heat recovery steam generators (HRSG) used in plant utilities.'},
+{code:'API Std 660',edition:'2020 (10th Ed)',org:'API',category:'Static Equipment Design',fullname:'Shell-and-tube Heat Exchangers',disc:'Mechanical',related:'Process',status:'Active',scope:'Establishes mechanical and standard process constraints for shell-and-tube heat exchangers, supplementing ASME Section VIII criteria for refinery service.'},
+{code:'API Std 661',edition:'2018 (7th Ed, R2024)',org:'API',category:'Static Equipment Design',fullname:'Petroleum, Petrochemical, and Natural Gas Industries—Air-cooled Heat Exchangers',disc:'Mechanical',related:'',status:'Active',scope:'Reaffirmed in 2024. Covers the engineering design, material verification, manufacturing, and checkout testing for ambient air-cooled heat exchangers (fin-fans) on modules.'},
+{code:'API Std 560',edition:'2016 (5th Ed, R2022)',org:'API',category:'Static Equipment Design',fullname:'Fired Heaters for General Refinery Service',disc:'Mechanical',related:'',status:'Active',scope:'Governs thermal configurations, coil calculations, burner configurations, and casing designs for industrial furnaces and fired heaters.'},
+{code:'TEMA Standards',edition:'2019 (10th Ed)',org:'TEMA',category:'Static Equipment Design',fullname:'Standards of the Tubular Exchanger Manufacturers Association',disc:'Mechanical',related:'Process',status:'Active',scope:'Defines geometric, manufacturing limits, thermal parameters, and structural rules for Class R (Refinery), Class C (Chemical), and Class B process heat exchangers.'},
+{code:'API Std 650',edition:'2020 (13th Ed)',org:'API',category:'Static Equipment Design',fullname:'Welded Tanks for Oil Storage',disc:'Mechanical',related:'Process',status:'Active',scope:'Provides parameters for design, manufacturing, erection, and hydro-testing of vertical aboveground cylindrical oil storage tanks (atmospheric pressure).'},
+{code:'API Std 620',edition:'2013 (12th Ed, R2021)',org:'API',category:'Static Equipment Design',fullname:'Design and Construction of Large, Welded, Low-pressure Storage Tanks',disc:'Mechanical',related:'',status:'Active',scope:'Governs large welded tanks subjected to small positive internal gas pressures (up to 15 psig), common in cryogenic LNG or refrigerated intermediate processing.'},
+{code:'API Std 610',edition:'2021 (12th Ed)',org:'API',category:'Rotating Equipment Design',fullname:'Centrifugal Pumps for Petroleum, Petrochemical, and Natural Gas Industries',disc:'Mechanical',related:'Process',status:'Active',scope:'The definitive standard specifying heavy-duty continuous criteria for process centrifugal pumps handling critical hydrocarbon products.'},
+{code:'API Std 674',edition:'2010 (3rd Ed, R2016/2023)',org:'API',category:'Rotating Equipment Design',fullname:'Positive Displacement Pumps—Reciprocating',disc:'Mechanical',related:'',status:'Active',scope:'Specifies minimum criteria for reciprocating positive displacement pumps (plunger/piston) for high-pressure chemical injection or utility dosing.'},
+{code:'API Std 676',edition:'2022 (4th Ed)',org:'API',category:'Rotating Equipment Design',fullname:'Positive Displacement Pumps—Rotary',disc:'Mechanical',related:'',status:'Active',scope:'Covers rotary positive displacement pumps (screw, gear, vane pumps) utilized for heavy crude viscous fluid transfers on platforms and onshore plants.'},
+{code:'API Std 682',edition:'2014 (4th Ed)',org:'API',category:'Rotating Equipment Design',fullname:'Pumps—Shaft Sealing Systems for Centrifugal and Rotary Pumps',disc:'Mechanical',related:'',status:'Active',scope:'Governs severe process parameters for mechanical seals and supply support systems to strictly eliminate fugitive hazardous emissions.'},
+{code:'API Std 617',edition:'2022 (9th Ed)',org:'API',category:'Rotating Equipment Design',fullname:'Axial and Centrifugal Compressors and Expander-compressors',disc:'Mechanical',related:'',status:'Active',scope:'Specifies minimum engineering design, dynamic balancing, and test parameters for high-speed centrifugal gas compressors in process plants.'},
+{code:'API Std 618',edition:'2007 (5th Ed, R2016/2024)',org:'API',category:'Rotating Equipment Design',fullname:'Reciprocating Compressors for Petroleum, Petrochemical, and Natural Gas Industries',disc:'Mechanical',related:'',status:'Active',scope:'Reaffirmed with updates. Governs slow-speed and high-speed reciprocating gas compression units, heavily focusing on pulsation and vibration controls.'},
+{code:'API Std 612',edition:'2020 (8th Ed)',org:'API',category:'Rotating Equipment Design',fullname:'Petroleum, Petrochemical, and Natural Gas Industries—Steam Turbines—Special-purpose Applications',disc:'Mechanical',related:'',status:'Active',scope:'Covers the design, casing, rotor dynamics, and safety testing for critical steam turbines used as equipment drivers in process plants.'},
+{code:'API 510',edition:'2022 (11th Ed)',org:'API',category:'Inspection, Fabrication & Testing',fullname:'Pressure Vessel Inspection Code: In-service Inspection, Rating, Repair, and Alteration',disc:'Mechanical',related:'',status:'Active',scope:'The post-fabrication and operational inspection code for process equipment. Directs remaining life, structural repair, and integrity limits.'},
+{code:'API 653',edition:'2014 (5th Ed, Addendum 2021)',org:'API',category:'Inspection, Fabrication & Testing',fullname:'Tank Inspection, Repair, Alteration, and Reconstruction',disc:'Mechanical',related:'',status:'Active',scope:'Regulates fitness-for-service checkouts, foundation settlements, and plate repair boundaries for working aboveground storage tanks.'},
+{code:'ASME BPVC Sec V',edition:'2025 Edition',org:'ASME',category:'Inspection, Fabrication & Testing',fullname:'Nondestructive Examination',disc:'Mechanical',related:'Piping, QA/QC, Structure',status:'Active',scope:'Defines performance parameters for RT, UT, MT, PT and leak testing during equipment manufacturing and field tie-ins.'},
+{code:'PIP RESP002',edition:'2019',org:'PIP',category:'Erection, Foundation & Assembly',fullname:'Design and Fabrication of Machinery Foundations',disc:'Mechanical',related:'',status:'Active',scope:'Process Industry Practices standard detailing the exact civil/mechanical engineering interfaces, anchor bolting, and grouting parameters for large rotating machinery.'},
+{code:'API RP 686',edition:'2009 (2nd Ed, R2021)',org:'API',category:'Erection, Foundation & Assembly',fullname:'Recommended Practice for Machinery Installation and Installation Design',disc:'Mechanical',related:'',status:'Active',scope:'The paramount oil & gas specification for machinery installation design, field piping alignment alignment checks, leveling, and pre-commissioning checkouts.'},
+{code:'AISC 360',edition:'2022',org:'AISC',category:'Design Specifications',fullname:'Specification for Structural Steel Buildings',disc:'Structural / Civil',related:'',status:'Active',scope:'The fundamental standard for the design, fabrication, and erection of structural steel buildings, widely adopted as the base design code for onshore oil & gas plants and refinery steel modules.'},
+{code:'AISC 303',edition:'2022',org:'AISC',category:'Design Specifications',fullname:'Code of Standard Practice for Steel Buildings and Bridges',disc:'Structural / Civil',related:'',status:'Active',scope:'Governs the practices and trade boundaries for the design, fabrication, and erection of structural steel, outlining legal and technical conventions between owners, engineers, and fabricators.'},
+{code:'API RP 2A-WSD',edition:'2014 (22nd Ed, R2020)',org:'API',category:'Offshore Structural Design',fullname:'Recommended Practice for Planning, Designing and Constructing Fixed Offshore Platforms—Working Stress Design',disc:'Structural / Civil',related:'',status:'Active',scope:'The premier oil & gas standard for the planning, engineering design, and construction of fixed steel offshore jacket platforms using Working Stress Design principles.'},
+{code:'API RP 2A-LRFD',edition:'2019 (2nd Ed)',org:'API',category:'Offshore Structural Design',fullname:'Planning, Designing, and Constructing Fixed Offshore Platforms—Load and Resistance Factor Design',disc:'Structural / Civil',related:'',status:'Active',scope:'Applies limit-state, probabilistic Load and Resistance Factor Design methodology for offshore structural steel designs.'},
+{code:'ASCE/SEI 7',edition:'2022',org:'ASCE',category:'Design Specifications',fullname:'Minimum Design Loads and Associated Criteria for Buildings and Other Structures',disc:'Structural / Civil',related:'',status:'Active',scope:'Provides comprehensive requirements for dead, live, soil, flood, tsunami, wind, snow, rain, ice, and earthquake loads, utilized alongside AISC for plant structural engineering.'},
+{code:'API Bul 2V',edition:'2022 (4th Ed)',org:'API',category:'Offshore Structural Design',fullname:'Design of Flat Plate Structures',disc:'Structural / Civil',related:'',status:'Active',scope:'Provides guidance on the design of steel flat plate structures for offshore platforms, structural components, and deck modules under various loading conditions.'},
+{code:'ASTM A36/A36M',edition:'2019',org:'ASTM',category:'Materials & Plates',fullname:'Standard Specification for Carbon Structural Steel',disc:'Structural / Civil',related:'',status:'Active',scope:'Standard specification covering carbon steel shapes, plates, and bars of structural quality for use in riveted, bolted, or welded construction of structures.'},
+{code:'ASTM A572/A572M',edition:'2021',org:'ASTM',category:'Materials & Plates',fullname:'Standard Specification for High-Strength Low-Alloy Columbium-Vanadium Structural Steel',disc:'Structural / Civil',related:'',status:'Active',scope:'Covers five grades of high-strength low-alloy structural steel shapes, plates, sheet piling, and bars, commonly used for high-load heavy steel structures.'},
+{code:'ASTM A992/A992M',edition:'2022',org:'ASTM',category:'Materials & Plates',fullname:'Standard Specification for Structural Steel Shapes',disc:'Structural / Civil',related:'',status:'Active',scope:'The dominant US specification for wide-flange shapes (I-beams/H-beams) used in structural steel frameworks and structural modules.'},
+{code:'API Spec 2W',edition:'2019 (6th Ed, R2024)',org:'API',category:'Materials & Plates',fullname:'Specification for Steel Plates for Offshore Structures, Produced by Thermo-Mechanical Control Processing (TMCP)',disc:'Structural / Civil',related:'',status:'Active',scope:'Covers TMCP steel plates for offshore structures intended for critical, fracture-critical, and low-temperature applications where enhanced weldability and toughness are vital.'},
+{code:'AWS D1.1/D1.1M',edition:'2025',org:'AWS',category:'Fabrication & Welding',fullname:'Structural Welding Code—Steel',disc:'Structural / Civil',related:'Mechanical, Piping, QA/QC',status:'Active',scope:'The absolute reference code for structural steel welding. Covers qualification of procedures (WPS/PQR), personnel, fabrication details, and inspection criteria for steel structures >3mm thick.'},
+{code:'AWS D1.8/D1.8M',edition:'2021',org:'AWS',category:'Fabrication & Welding',fullname:'Structural Welding Code—Seismic Supplement',disc:'Structural / Civil',related:'Mechanical, Piping, QA/QC',status:'Active',scope:'Supplements AWS D1.1 with additional controls for steel structural connections subjected to high seismic loads or repetitive fatigue stresses in energy infrastructure.'},
+{code:'API RP 2Z',edition:'2010 (4th Ed, R2021)',org:'API',category:'Fabrication & Welding',fullname:'Recommended Practice for Prequalification Program for Offshore Structure Materials',disc:'Structural / Civil',related:'',status:'Active',scope:'Outlines prequalification programs for welding and steel plate testing to ensure adequate fracture toughness (CTOD testing) in harsh marine environments.'},
+{code:'AWS D1.1 (Clause 8)',edition:'2025',org:'AWS',category:'Inspection & Testing',fullname:'Inspection - Structural Welding Code',disc:'Structural / Civil',related:'Mechanical, Piping, QA/QC',status:'Active',scope:'Clause 8 of AWS D1.1 defines the specific acceptance criteria for Visual Inspection (VT), Ultrasonic Testing (UT), and Radiographic Testing (RT) of structural structural welds.'},
+{code:'ASME BPVC Sec V',edition:'2025',org:'ASME',category:'Inspection & Testing',fullname:'Nondestructive Examination',disc:'Structural / Civil',related:'Mechanical, Piping, QA/QC',status:'Active',scope:'Referenced for technical methodology on non-destructive examinations (NDT), including Magnetic Particle (MT) and Liquid Penetrant (PT) applicable to structural fabrications.'},
+{code:'ASTM E709',edition:'2021',org:'ASTM',category:'Inspection & Testing',fullname:'Standard Guide for Magnetic Particle Testing',disc:'Structural / Civil',related:'Mechanical, Piping, QA/QC',status:'Active',scope:'Detailed technical guideline for executing magnetic particle examination on structural steel welds and lifting lugs to identify surface/subsurface defects.'},
+{code:'ASTM E165/E165M',edition:'2023',org:'ASTM',category:'Inspection & Testing',fullname:'Standard Practice for Liquid Penetrant Testing for General Industry',disc:'Structural / Civil',related:'Mechanical, Piping, QA/QC',status:'Active',scope:'Governs the standard practice for dye penetrant testing on structural steel assemblies and non-magnetic attachment welds.'},
+{code:'AISC 360 (Chapter M)',edition:'2022',org:'AISC',category:'Erection & Assembly',fullname:'Fabrication and Erection Requirements',disc:'Structural / Civil',related:'',status:'Active',scope:'Chapter M prescribes exact criteria for structural steel erection, alignment tolerances, anchoring, field bolting, and temporary bracing stability during erection.'},
+{code:'AISC Code of Practice (Sec 7)',edition:'2022',org:'AISC',category:'Erection & Assembly',fullname:'Erection - Field Assembly Practices',disc:'Structural / Civil',related:'',status:'Active',scope:'Section 7 outlines field assembly practices, clarifying tolerances for column plumbness, elevation, and structural positioning boundaries.'},
+{code:'API RP 2A-WSD (Section 12)',edition:'2014 (R2020)',org:'API',category:'Erection & Assembly',fullname:'Installation of Offshore Structures',disc:'Structural / Civil',related:'',status:'Active',scope:'Section 12 focuses extensively on field operations, pile driving, lifting, launching, leveling, and securing offshore jacket structural steel elements.'},
+{code:'ISA-5.1',edition:'2022 Edition',org:'ISA',category:'Process Measurement & Specs',fullname:'Instrumentation Symbols and Identification',disc:'Instrument & Telecom',related:'',status:'Active',scope:'The universal foundation code for P&IDs, specifying standard nomenclature, lettering tags, and graphic symbols used for identifying process instruments and control loops.'},
+{code:'API RP 551',edition:'2016 (R2022)',org:'API',category:'Process Measurement & Specs',fullname:'Process Measurement Instrumentation',disc:'Instrument & Telecom',related:'',status:'Active',scope:'Reaffirmed 2022. Provides extensive guidelines for selecting, scaling, and location criteria of process instruments measuring pressure, level, temperature, and fluid flow in refineries.'},
+{code:'ASME MFC-3M',edition:'2004 (R2022)',org:'ASME',category:'Process Measurement & Specs',fullname:'Measurement of Fluid Flow in Pipes Using Orifice, Nozzle, and Venturi',disc:'Instrument & Telecom',related:'',status:'Active',scope:'Governs geometric dimensions, discharge coefficients, and differential pressure calculation metrics for primary flow elements like orifice plates.'},
+{code:'API MPMS Ch. 5.6',edition:'2013 (R2020)',org:'API',category:'Process Measurement & Specs',fullname:'Manual of Petroleum Measurement Standards - Measurement of Liquid Hydrocarbons by Coriolis Meters',disc:'Instrument & Telecom',related:'',status:'Active',scope:'Specifies precision parameters, piping conditions, and validation requirements for custody-transfer Coriolis mass flowmeters handling liquids.'},
+{code:'ANSI/ISA-84.00.01',edition:'2004 (IEC 61511 Mod)',org:'ISA',category:'Control & Safety Systems',fullname:'Functional Safety: Safety Instrumented Systems for the Process Industry Sector',disc:'Instrument & Telecom',related:'',status:'Active',scope:'The paramount US functional safety standard. Prescribes the Safety Life Cycle framework, Safety Integrity Level (SIL) allocation, and design rules for emergency shutdown systems (ESD).'},
+{code:'API RP 554 Part 1',edition:'2021 (2nd Ed)',org:'API',category:'Control & Safety Systems',fullname:'Process Control Systems: Part 1 - Process Control Systems Functions and Functional Specification Development',disc:'Instrument & Telecom',related:'',status:'Active',scope:'Outlines high-level functional parameters, system integration boundaries, and specification guidelines for Distributed Control Systems (DCS) and PLCs.'},
+{code:'API RP 554 Part 2',edition:'2021 (2nd Ed)',org:'API',category:'Control & Safety Systems',fullname:'Process Control Systems: Part 2 - Process Control System Design',disc:'Instrument & Telecom',related:'',status:'Active',scope:'Addresses detailed software, hardware, system topology architectures, and dual-redundancy guidelines for control networks.'},
+{code:'API RP 552',edition:'1994 (R2021)',org:'API',category:'Control & Safety Systems',fullname:'Transmission Systems',disc:'Instrument & Telecom',related:'',status:'Active',scope:'Governs the routing, noise mitigation, shielding, and signal isolation rules for pneumatic, analog (4-20mA), digital, and fiber-optic instrument loops.'},
+{code:'ISA-18.2',edition:'2016 Edition',org:'ISA',category:'Control & Safety Systems',fullname:'Management of Alarm Systems for the Process Industries',disc:'Instrument & Telecom',related:'',status:'Active',scope:'Defines the absolute workflow criteria for alarm lifecycle management, rationalization metrics, priority filtering, and avoiding alarm flooding in control rooms.'},
+{code:'API RP 14C',edition:'2017 (R2023)',org:'API',category:'Control & Safety Systems',fullname:'Analysis, Design, Installation, and Testing of Safety Systems for Offshore Production Facilities',disc:'Instrument & Telecom',related:'Process, Safety',status:'Active',scope:'Extensively utilized by I&C engineers to construct Safety Analysis Function Evaluation (SAFE) charts and implement primary offshore shutdown logic.'},
+{code:'API RP 553',edition:'2012 (R2021)',org:'API',category:'Valves & Final Elements',fullname:'Refinery Valves and Accessories for Control and Safety Instrumented Systems',disc:'Instrument & Telecom',related:'',status:'Active',scope:'Outlines strict criteria for severe-service control valves, isolating blocks, and Emergency Shutdown Valves (ESV/BDV) accessories used in hazardous loops.'},
+{code:'ISA-75.01.01',edition:'2012 (R2017)',org:'ISA',category:'Valves & Final Elements',fullname:'Flow Equations for Control Valves',disc:'Instrument & Telecom',related:'',status:'Active',scope:'The mathematical standard containing the definitive flow sizing equations for control valves handling compressible vapors and incompressible liquids.'},
+{code:'ISA-75.19.01',edition:'2013 (R2018)',org:'ISA',category:'Valves & Final Elements',fullname:'Hydrostatic Testing of Control Valves',disc:'Instrument & Telecom',related:'',status:'Active',scope:'Establishes structural inspection and shell/seat pressure leakage testing bounds specifically for manufactured control valves.'},
+{code:'ASME B16.34',edition:'2025 Edition',org:'ASME',category:'Valves & Final Elements',fullname:'Valves—Flanged, Threaded, and Welding End',disc:'Instrument & Telecom',related:'Piping, Process',status:'Active',scope:'Mandated to govern pressure-temperature limits, casting wall thicknesses, and material selection criteria for control valve bodies.'},
+{code:'NFPA 72',edition:'2025/2026 Edition',org:'NFPA',category:'Fire, Gas & Classified Areas',fullname:'National Fire Alarm and Signaling Code',disc:'Instrument & Telecom',related:'Safety',status:'Active',scope:'The core reference code governing the configuration, loop circuit wiring integrity, and system diagnostics for industrial Fire and Gas (F&G) networks.'},
+{code:'API RP 14G',edition:'2019 Edition',org:'API',category:'Fire, Gas & Classified Areas',fullname:'Recommended Practice for Fire Prevention and Control on Open-type Offshore Production Platforms',disc:'Instrument & Telecom',related:'Safety',status:'Active',scope:'Directs the specific layout, logic zones, and distribution mapping of flame, smoke, combustible gas, and toxic gas detectors across offshore production modules.'},
+{code:'UL 121201',edition:'2019 (R2023)',org:'UL',category:'Fire, Gas & Classified Areas',fullname:'Nonincendive Electrical Equipment for Use in Class I and II, Division 2 Hazardous Locations',disc:'Instrument & Telecom',related:'Electrical',status:'Active',scope:'Essential testing certification standard for field electronic instruments, transmitters, and solenoids operating safely within Division 2 areas without explosion enclosures.'},
+{code:'PIP INT0101',edition:'2021 Edition',org:'PIP',category:'Installation & Inspection',fullname:'Instrumentation Installation Details',disc:'Instrument & Telecom',related:'',status:'Active',scope:'Process Industry Practices standard presenting explicit mechanical installation details, typical instrument manifold piping, and support mounting hook-ups.'},
+{code:'ISA-RP60.1',edition:'1990 Edition',org:'ISA',category:'Installation & Inspection',fullname:'Control Center Facilities',disc:'Instrument & Telecom',related:'',status:'Active',scope:'Provides structural layout, climate controls, operator console geometry, and cabling panel termination setups for control buildings.'},
+{code:'ASME BPVC Sec V',edition:'2025 Edition',org:'ASME',category:'Installation & Inspection',fullname:'Nondestructive Examination',disc:'Instrument & Telecom',related:'Mechanical, Piping, QA/QC, Structure',status:'Active',scope:'Referenced for radiography (RT) and dye penetrant (PT) execution methods on high-pressure instrument piping, impulse line welds, and socket joints.'}
+];
+
 const DISC_TITLE_FAMILIES = {
   'PMT': ['Lead Project Engineer','Senior Project Engineer','Junior Project Engineer','Fresher','Lead Project Coordinator','Senior Project Coordinator','Junior Project Coordinator'],
   'QA/QC & Document Control': ['Senior QA/QC Engineer','Junior QA/QC Engineer','Fresher','Lead DCC','Document Controller'],
@@ -486,6 +837,12 @@ function defaultState(){
     },
     filters:{ima:{}, all:{}},   // {colKey:{selected:Set-as-array}|null}
     sort:{ima:null, all:null},
+    trainingRows: SEED_TRAINING.map(r=>Object.assign({id:uid()}, JSON.parse(JSON.stringify(r)))),
+    trainingAnchors: {},
+    trainingCfg: {title:'TIẾN ĐỘ ĐÀO TẠO TOOL TÍNH TOÁN IN-HOUSE THEO BỘ MÔN', titleColor:'#1B2C5C'},
+    equipmentRows: SEED_EQUIPMENT.map(r=>Object.assign({id:uid()}, JSON.parse(JSON.stringify(r)))),
+    softwareRows: SEED_SOFTWARE.map(r=>Object.assign({id:uid()}, JSON.parse(JSON.stringify(r)))),
+    standardsRows: SEED_STANDARDS.map(r=>Object.assign({id:uid()}, JSON.parse(JSON.stringify(r)))),
   };
 }
 function mkBlock(name, teamTitle, disc, color){
@@ -531,6 +888,16 @@ function normalizeState(d){
   d.schedules=d.schedules||defaultSchedules();
   d.schedules.ima=d.schedules.ima||defaultSchedules().ima;
   d.schedules.mm3=d.schedules.mm3||defaultSchedules().mm3;
+  d.trainingRows=d.trainingRows||SEED_TRAINING.map(r=>Object.assign({id:uid()}, JSON.parse(JSON.stringify(r))));
+  d.trainingRows.forEach(r=>{ if(!r.id) r.id=uid(); });
+  d.trainingAnchors=d.trainingAnchors||{};
+  d.trainingCfg=d.trainingCfg||{title:'TIẾN ĐỘ ĐÀO TẠO TOOL TÍNH TOÁN IN-HOUSE THEO BỘ MÔN', titleColor:'#1B2C5C'};
+  d.equipmentRows=d.equipmentRows||SEED_EQUIPMENT.map(r=>Object.assign({id:uid()}, JSON.parse(JSON.stringify(r))));
+  d.equipmentRows.forEach(r=>{ if(!r.id) r.id=uid(); });
+  d.softwareRows=d.softwareRows||SEED_SOFTWARE.map(r=>Object.assign({id:uid()}, JSON.parse(JSON.stringify(r))));
+  d.softwareRows.forEach(r=>{ if(!r.id) r.id=uid(); });
+  d.standardsRows=d.standardsRows||SEED_STANDARDS.map(r=>Object.assign({id:uid()}, JSON.parse(JSON.stringify(r))));
+  d.standardsRows.forEach(r=>{ if(!r.id) r.id=uid(); });
   return d;
 }
 function isLeadPerson(p){ return /^lead\b/i.test((p&&p.title)||''); }
@@ -669,6 +1036,8 @@ function showMain(v){
   $('#main-'+v).classList.add('active');
   $$('.main-tabs button').forEach(b=>b.classList.toggle('active', b.dataset.main===v));
   if(v==='orgsuite') showSub(currentSub||'org');
+  if(v==='training') renderTraining();
+  if(v==='assets') renderAssets();
   if(v==='manhour') renderManhour();
   if(v==='scheduler') renderSchedule();
 }
@@ -688,6 +1057,8 @@ function showView(v){ showMain('orgsuite'); showSub(v); }
 function renderAll(){
   renderOrg(); renderTable('ima'); renderTable('all'); renderTitleStats(); renderFresh(); renderDash(); renderManhour();
   if(typeof renderSchedule==='function') renderSchedule();
+  if(typeof renderTraining==='function') renderTraining();
+  if(typeof renderAssets==='function') renderAssets();
 }
 
 /* ================= ORG CHART (SVG) ================= */
@@ -2004,6 +2375,525 @@ function exportSchedulePNG(){
 /* Old embedded Master Scheduler has been replaced by the native two-tab Schedule view above. */
 function loadSchedulerFrame(){ renderSchedule(); }
 function reloadSchedulerFrame(){ renderSchedule(); }
+</script>
+<script>
+/* ================================================================
+   TAB 2 — KẾ HOẠCH ĐÀO TẠO (Tool tính toán In-house)
+   TAB 3 — THIẾT BỊ / PHẦN MỀM / TIÊU CHUẨN
+   ================================================================ */
+function masterDisciplines(){ return (S.disciplines&&S.disciplines.length)? S.disciplines : DEFAULT_DISCIPLINES; }
+function discOptionsNoAdd(cur, extra){
+  const list = masterDisciplines().slice();
+  (extra||[]).forEach(x=>{ if(!list.includes(x)) list.push(x); });
+  if(cur && !list.includes(cur)) list.push(cur);
+  return '<option value="">—</option>'+list.map(d=>'<option value="'+esc(d)+'" '+(d===cur?'selected':'')+'>'+esc(d)+'</option>').join('');
+}
+function pctBarHTML(frac){
+  const pct=Math.round((frac||0)*100);
+  const col= pct>=100? 'var(--green)' : pct>0? '#2E75B6' : '#B9C2D6';
+  return '<div class="pbar-wrap"><div class="pbar-fill" style="width:'+pct+'%;background:'+col+';"></div></div><span class="pbar-pct">'+pct+'%</span>';
+}
+
+/* ---------------- TRAINING PLAN ---------------- */
+const PRIORITY_COLORS = {'Cao':'#C6EFCE','Trung bình':'#FCE4D6','Thấp':'#DAEEF3'};
+const PRIORITY_OPTIONS = ['Cao','Trung bình','Thấp'];
+
+function trainingGroups(){
+  const master = masterDisciplines();
+  const rows = S.trainingRows||[];
+  const byDisc = {};
+  rows.forEach(r=>{ const d=r.disc||''; (byDisc[d]=byDisc[d]||[]).push(r); });
+  const present = Object.keys(byDisc);
+  const ordered = master.filter(d=>byDisc[d]).concat(present.filter(d=>!master.includes(d)));
+  return ordered.map(disc=>({disc, rows:byDisc[disc]}));
+}
+function ensureTrainingAnchors(){
+  S.trainingAnchors=S.trainingAnchors||{};
+  trainingGroups().forEach(g=>{ if(!S.trainingAnchors[g.disc]) S.trainingAnchors[g.disc]='2026-08-01'; });
+}
+function computeTrainingSchedule(){
+  ensureTrainingAnchors();
+  const out=[];
+  trainingGroups().forEach(g=>{
+    let cur = sdParse(S.trainingAnchors[g.disc]) || sdParse('2026-08-01');
+    g.rows.forEach((r,i)=>{
+      const start=new Date(cur);
+      const days=Math.max(1, Math.round((+r.estWeeks||0)*7));
+      const end=new Date(start); end.setDate(end.getDate()+days);
+      out.push({row:r, disc:g.disc, start:sdISO(start), end:sdISO(end), first:i===0});
+      cur=end;
+    });
+  });
+  return out;
+}
+function updateTraining(id,key,value){
+  const r=(S.trainingRows||[]).find(x=>x.id===id); if(!r) return;
+  if(key==='estWeeks') r[key]=Math.max(0,Number(value)||0);
+  else if(key==='progress') r[key]=Math.max(0,Math.min(1,(Number(value)||0)/100));
+  else r[key]=value;
+  renderTraining();
+}
+function updateTrainingAnchor(disc,value){
+  S.trainingAnchors=S.trainingAnchors||{};
+  S.trainingAnchors[disc]=value;
+  renderTraining();
+}
+function addTrainingRow(){
+  const master=masterDisciplines();
+  const r={id:uid(), disc:master[0]||'', tool:'Tool mới', purpose:'', standard:'', platform:'', output:'', priority:'Trung bình', estWeeks:4, progress:0, remark:''};
+  S.trainingRows.push(r);
+  renderTraining();
+  toast('Đã thêm hàng — chọn Bộ môn để xếp vào đúng nhóm');
+}
+function delTrainingRow(id){
+  if(!confirm('Xóa dòng này khỏi Kế hoạch đào tạo?')) return;
+  S.trainingRows=S.trainingRows.filter(x=>x.id!==id);
+  renderTraining();
+}
+function renderTrainingTable(){
+  const sch=computeTrainingSchedule();
+  const groups=trainingGroups();
+  let h='<table class="grid"><thead><tr>'+
+    '<th style="min-width:34px;">STT</th>'+
+    '<th style="min-width:150px;">Bộ môn</th>'+
+    '<th style="min-width:220px;">Tên Tool / Bảng tính</th>'+
+    '<th style="min-width:220px;">Mục đích tính toán</th>'+
+    '<th style="min-width:170px;">Cơ sở tiêu chuẩn</th>'+
+    '<th style="min-width:130px;">Nền tảng đề xuất</th>'+
+    '<th style="min-width:160px;">Đầu ra</th>'+
+    '<th style="min-width:100px;">Ưu tiên</th>'+
+    '<th style="min-width:90px;">Th.gian dự kiến</th>'+
+    '<th style="min-width:100px;">Bắt đầu</th>'+
+    '<th style="min-width:100px;">Kết thúc</th>'+
+    '<th style="min-width:180px;">Tiến độ (%)</th>'+
+    '<th style="min-width:200px;">Ghi chú</th>'+
+    '<th></th></tr></thead><tbody>';
+  if(!groups.length){ h+='<tr><td colspan="14" style="text-align:center;color:var(--gray-2);padding:20px;">Chưa có dữ liệu — nhấn "＋ Thêm hàng"</td></tr>'; }
+  let n=0;
+  groups.forEach(g=>{
+    const col=discColorOf(g.disc);
+    const anchor=(S.trainingAnchors||{})[g.disc]||'2026-08-01';
+    h+='<tr class="grouphead"><td colspan="14" style="background:'+col+';">'+esc(g.disc)+' — '+g.rows.length+' tool · Ngày bắt đầu nhóm: '+
+      '<input type="date" value="'+esc(anchor)+'" style="width:150px;display:inline-block;" onchange="updateTrainingAnchor(\''+esc(g.disc)+'\',this.value)"></td></tr>';
+    g.rows.forEach(r=>{
+      n++;
+      const s=sch.find(x=>x.row.id===r.id)||{start:'',end:''};
+      const prioBg=PRIORITY_COLORS[r.priority]||'#fff';
+      h+='<tr data-id="'+r.id+'">';
+      h+='<td class="rownum">'+n+'</td>';
+      h+='<td class="disc-cell"><select onchange="updateTraining(\''+r.id+'\',\'disc\',this.value)">'+discOptionsNoAdd(r.disc)+'</select></td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateTraining(\''+r.id+'\',\'tool\',this.textContent.trim())" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}">'+esc(r.tool)+'</td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateTraining(\''+r.id+'\',\'purpose\',this.textContent.trim())">'+esc(r.purpose)+'</td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateTraining(\''+r.id+'\',\'standard\',this.textContent.trim())">'+esc(r.standard)+'</td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateTraining(\''+r.id+'\',\'platform\',this.textContent.trim())">'+esc(r.platform)+'</td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateTraining(\''+r.id+'\',\'output\',this.textContent.trim())">'+esc(r.output)+'</td>';
+      h+='<td style="background:'+prioBg+';"><select style="background:transparent;border:none;font-weight:bold;" onchange="updateTraining(\''+r.id+'\',\'priority\',this.value)">'+PRIORITY_OPTIONS.map(p=>'<option '+(p===r.priority?'selected':'')+'>'+p+'</option>').join('')+'</select></td>';
+      h+='<td><input class="mini-input" type="number" min="0" step="1" value="'+(r.estWeeks||0)+'" onchange="updateTraining(\''+r.id+'\',\'estWeeks\',this.value)" style="width:50px;"> tuần</td>';
+      h+='<td>'+sdFmt(s.start)+'</td>';
+      h+='<td>'+sdFmt(s.end)+'</td>';
+      h+='<td><div class="pbar-cell">'+pctBarHTML(r.progress)+'<input class="mini-input" type="number" min="0" max="100" step="1" value="'+Math.round((r.progress||0)*100)+'" style="width:46px;" onchange="updateTraining(\''+r.id+'\',\'progress\',this.value)"></div></td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateTraining(\''+r.id+'\',\'remark\',this.textContent.trim())">'+esc(r.remark)+'</td>';
+      h+='<td class="delcell"><button title="Xóa" onclick="delTrainingRow(\''+r.id+'\')">✕</button></td>';
+      h+='</tr>';
+    });
+  });
+  h+='</tbody></table>';
+  $('#tblTraining').innerHTML=h;
+}
+function trainingOverallData(){
+  return trainingGroups().map(g=>{
+    const total=g.rows.length;
+    const done=g.rows.filter(r=>(r.progress||0)>=1).length;
+    const inprog=g.rows.filter(r=>(r.progress||0)>0 && (r.progress||0)<1).length;
+    const notstarted=total-done-inprog;
+    const avg= total? g.rows.reduce((s,r)=>s+(r.progress||0),0)/total*100 : 0;
+    return {disc:g.disc, total, done, inprog, notstarted, avg};
+  });
+}
+function buildTrainingOverallSVG(){
+  const cfg=S.trainingCfg||{};
+  const data=trainingOverallData();
+  const W=Math.max(900, 70+data.length*130), padL=64,padR=24,padT=64,padB=110;
+  const H=460, cw=W-padL-padR, ch=H-padT-padB;
+  const accent=cfg.titleColor||S.deColor;
+  const s=[];
+  s.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Arial, sans-serif">');
+  s.push('<rect width="'+W+'" height="'+H+'" fill="#FFFFFF"/>');
+  s.push('<rect x="0" y="0" width="'+W+'" height="5" fill="'+accent+'"/>');
+  s.push(svgText(W/2,32,cfg.title||'TIẾN ĐỘ ĐÀO TẠO','text-anchor="middle" font-size="16.5" font-weight="bold" fill="'+accent+'"'));
+  s.push(svgText(W/2,50,'% hoàn thành trung bình theo Bộ môn — màu cột đồng bộ Sơ đồ tổ chức','text-anchor="middle" font-size="11" fill="#6B7488"'));
+  if(!data.length){ s.push(svgText(W/2,H/2,'Chưa có dữ liệu','text-anchor="middle" font-size="12.5" fill="#9AA2B4"')); s.push('</svg>'); return s.join('\n'); }
+  for(let v=0; v<=100; v+=20){
+    const y=padT+ch-ch*v/100;
+    s.push('<line x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'" stroke="#E1E7F3" stroke-width="1"/>');
+    s.push(svgText(padL-8,y+4,v+'%','text-anchor="end" font-size="11" fill="#6B7488"'));
+  }
+  const bw=Math.min(70, cw/data.length*0.6);
+  data.forEach((d,i)=>{
+    const cx=padL+cw*(i+0.5)/data.length;
+    const col=discColorOf(d.disc);
+    const bh=ch*d.avg/100, y=padT+ch-bh;
+    const tip=d.disc+': '+d.avg.toFixed(0)+'% TB · '+d.done+' hoàn thành, '+d.inprog+' đang làm, '+d.notstarted+' chưa bắt đầu ('+d.total+' tool)';
+    s.push('<rect x="'+(cx-bw/2)+'" y="'+y+'" width="'+bw+'" height="'+bh+'" rx="4" fill="'+col+'"><title>'+esc(tip)+'</title></rect>');
+    s.push(svgText(cx,y-7,d.avg.toFixed(0)+'%','text-anchor="middle" font-size="13" font-weight="bold" fill="'+col+'"'));
+    const lines=wrap(d.disc, cw/data.length-8, '11px Arial');
+    let yy=padT+ch+18; lines.slice(0,3).forEach(ln=>{ s.push(svgText(cx,yy,ln,'text-anchor="middle" font-size="11" fill="#1a2333"')); yy+=13; });
+    yy+=4; s.push(svgText(cx,yy,d.total+' tool','text-anchor="middle" font-size="10" fill="#9AA2B4"'));
+  });
+  s.push('</svg>');
+  return s.join('\n');
+}
+function renderTraining(){
+  if(!$('#main-training')) return;
+  renderTrainingTable();
+  S.trainingCfg=S.trainingCfg||{};
+  const ti=$('#trainTitleInput'), ci=$('#trainColorInput');
+  if(ti && document.activeElement!==ti) ti.value=S.trainingCfg.title||'';
+  if(ci) ci.value=S.trainingCfg.titleColor||S.titleColor;
+  $('#trainChart').innerHTML=buildTrainingOverallSVG();
+}
+function exportTrainingPNG(){
+  const svg=buildTrainingOverallSVG();
+  const scale=+(($('#trainScale')||{}).value||3);
+  svgToPNG(svg, scale, safeName(S.trainingCfg.title||'training_chart')+'_'+scale+'x.png');
+}
+
+/* ---------------- ASSETS: THIẾT BỊ ---------------- */
+let currentAsset='equip';
+let currentAssetSub={equip:'list', soft:'list', std:'list'};
+function showAsset(k){
+  currentAsset=k;
+  $$('.asset-tabs button').forEach(b=>b.classList.toggle('active', b.dataset.asset===k));
+  $$('#main-assets > .mh-view').forEach(x=>x.classList.remove('active'));
+  const el=$('#asset-'+k); if(el) el.classList.add('active');
+  renderAssets();
+}
+function showAssetSub(asset,sub){
+  currentAssetSub[asset]=sub;
+  const host=$('#asset-'+asset); if(!host) return;
+  $$('.mh-tabs button',host).forEach(b=>b.classList.toggle('active', b.dataset.sub===sub));
+  $$('.mh-view',host).forEach(x=>x.classList.remove('active'));
+  const el=$('#'+asset+'-'+sub); if(el) el.classList.add('active');
+  renderAssets();
+}
+function renderAssets(){
+  if(!$('#main-assets')) return;
+  if(currentAsset==='equip'){ renderEquipList(); if(currentAssetSub.equip==='stats') renderEquipStats(); }
+  if(currentAsset==='soft'){ renderSoftList(); if(currentAssetSub.soft==='stats') renderSoftStats(); }
+  if(currentAsset==='std'){ renderStdList(); if(currentAssetSub.std==='stats') renderStdStats(); }
+}
+function equipCategory(r){
+  const h=(r.item||'').toLowerCase();
+  if(/rugged/.test(h)) return 'Laptop rugged';
+  if(/laptop/.test(h)) return 'Laptop';
+  if(/không nối mạng|khong noi mang|air-?gap/.test(h)) return 'Workstation';
+  if(/desktop/.test(h)) return 'Desktop';
+  if(/màn hình|man hinh|monitor/.test(h)) return 'Màn hình';
+  if(/laser.*3d|3d.*scan/.test(h)) return 'Máy quét laser 3D';
+  if(/drone/.test(h)) return 'Drone khảo sát';
+  if(/đo hiện trường|thiet bi do/.test(h)) return 'Thiết bị đo';
+  return r.item || 'Khác';
+}
+function updateEquip(id,key,value){
+  const r=(S.equipmentRows||[]).find(x=>x.id===id); if(!r) return;
+  if(key==='qty') r[key]=Number(value)||0; else r[key]=value;
+  renderAssets();
+}
+function addEquipRow(){
+  const r={id:uid(), group:'A. Thiết bị cá nhân', item:'Thiết bị mới', desc:'', unit:'bộ', qty:1, purpose:'', note:''};
+  S.equipmentRows.push(r); renderAssets(); toast('Đã thêm thiết bị mới');
+}
+function delEquipRow(id){
+  if(!confirm('Xóa thiết bị này?')) return;
+  S.equipmentRows=S.equipmentRows.filter(x=>x.id!==id); renderAssets();
+}
+function renderEquipList(){
+  const host=$('#tblEquip'); if(!host) return;
+  const rows=S.equipmentRows||[];
+  let h='<table class="grid"><thead><tr><th style="min-width:34px;">STT</th><th style="min-width:170px;">Phân nhóm</th><th style="min-width:220px;">Hạng mục</th><th style="min-width:200px;">Mô tả / Cấu hình đề xuất</th><th style="min-width:60px;">ĐVT</th><th style="min-width:70px;">Số lượng</th><th style="min-width:200px;">Mục đích sử dụng</th><th style="min-width:220px;">Ghi chú</th><th></th></tr></thead><tbody>';
+  rows.forEach((r,i)=>{
+    h+='<tr data-id="'+r.id+'">';
+    h+='<td class="rownum">'+(i+1)+'</td>';
+    h+='<td contenteditable spellcheck="false" onblur="updateEquip(\''+r.id+'\',\'group\',this.textContent.trim())">'+esc(r.group)+'</td>';
+    h+='<td contenteditable spellcheck="false" onblur="updateEquip(\''+r.id+'\',\'item\',this.textContent.trim())">'+esc(r.item)+'</td>';
+    h+='<td contenteditable spellcheck="false" onblur="updateEquip(\''+r.id+'\',\'desc\',this.textContent.trim())">'+esc(r.desc)+'</td>';
+    h+='<td contenteditable spellcheck="false" onblur="updateEquip(\''+r.id+'\',\'unit\',this.textContent.trim())">'+esc(r.unit)+'</td>';
+    h+='<td><input class="mini-input" type="number" min="0" value="'+(r.qty||0)+'" onchange="updateEquip(\''+r.id+'\',\'qty\',this.value)"></td>';
+    h+='<td contenteditable spellcheck="false" onblur="updateEquip(\''+r.id+'\',\'purpose\',this.textContent.trim())">'+esc(r.purpose)+'</td>';
+    h+='<td contenteditable spellcheck="false" onblur="updateEquip(\''+r.id+'\',\'note\',this.textContent.trim())">'+esc(r.note)+'</td>';
+    h+='<td class="delcell"><button title="Xóa" onclick="delEquipRow(\''+r.id+'\')">✕</button></td>';
+    h+='</tr>';
+  });
+  const total=rows.reduce((s,r)=>s+(r.qty||0),0);
+  h+='<tr class="totals"><td colspan="5">TỔNG CỘNG</td><td>'+total+'</td><td colspan="3"></td></tr>';
+  h+='</tbody></table>';
+  host.innerHTML=h;
+}
+function equipGroupStats(){
+  const rows=S.equipmentRows||[];
+  const byG={};
+  rows.forEach(r=>{ const g=r.group||'(Chưa phân nhóm)'; byG[g]=(byG[g]||0)+(r.qty||0); });
+  return Object.keys(byG).map(g=>({group:g, qty:byG[g]}));
+}
+function equipCategoryStats(){
+  const rows=S.equipmentRows||[];
+  const byC={};
+  rows.forEach(r=>{ const c=equipCategory(r); byC[c]=(byC[c]||0)+(r.qty||0); });
+  return Object.keys(byC).map(c=>({cat:c, qty:byC[c]})).sort((a,b)=>b.qty-a.qty);
+}
+function buildEquipDonutSVG(){
+  const data=equipGroupStats();
+  const total=data.reduce((s,d)=>s+d.qty,0)||1;
+  const W=520,H=340; const cx=180,cy=170,R=110,r=62;
+  const s=[]; s.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Arial, sans-serif">');
+  s.push('<rect width="'+W+'" height="'+H+'" fill="#FFFFFF"/>');
+  s.push(svgText(W/2,26,'PHÂN BỔ THIẾT BỊ THEO NHÓM','text-anchor="middle" font-size="13.5" font-weight="bold" fill="'+S.titleColor+'"'));
+  let a0=-Math.PI/2;
+  data.forEach((d,i)=>{
+    const frac=d.qty/total; const a1=a0+frac*2*Math.PI; const large=frac>0.5?1:0;
+    const x0=cx+R*Math.cos(a0), y0=cy+R*Math.sin(a0), x1=cx+R*Math.cos(a1), y1=cy+R*Math.sin(a1);
+    const xi=cx+r*Math.cos(a1), yi=cy+r*Math.sin(a1), xi0=cx+r*Math.cos(a0), yi0=cy+r*Math.sin(a0);
+    const col=PALETTE[i%PALETTE.length];
+    s.push('<path d="M '+x0+' '+y0+' A '+R+' '+R+' 0 '+large+' 1 '+x1+' '+y1+' L '+xi+' '+yi+' A '+r+' '+r+' 0 '+large+' 0 '+xi0+' '+yi0+' Z" fill="'+col+'" stroke="#fff" stroke-width="1.5"><title>'+esc(d.group+': '+d.qty+' ('+(frac*100).toFixed(0)+'%)')+'</title></path>');
+    if(frac>0.04){ const am=(a0+a1)/2, tx=cx+(R+r)/2*Math.cos(am), ty=cy+(R+r)/2*Math.sin(am); s.push(svgText(tx,ty+4,d.qty+' · '+(frac*100).toFixed(0)+'%','text-anchor="middle" font-size="11.5" font-weight="bold" fill="#fff"')); }
+    a0=a1;
+  });
+  s.push(svgText(cx,cy-2,String(total),'text-anchor="middle" font-size="24" font-weight="bold" fill="'+S.titleColor+'"'));
+  s.push(svgText(cx,cy+18,'thiết bị','text-anchor="middle" font-size="11" fill="#6B7488"'));
+  let ly=70; data.forEach((d,i)=>{ s.push('<rect x="360" y="'+(ly-10)+'" width="12" height="12" rx="2" fill="'+PALETTE[i%PALETTE.length]+'"/>'); s.push(svgText(378,ly,d.group+' ('+d.qty+')','font-size="11" fill="#1a2333"')); ly+=22; });
+  s.push('</svg>'); return s.join('\n');
+}
+function buildEquipBarSVG(){
+  const data=equipCategoryStats();
+  const W=560, rowH=30, padL=150, padR=50, padT=44;
+  const H=padT+data.length*rowH+20;
+  const maxV=Math.max(...data.map(d=>d.qty),1);
+  const s=[]; s.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Arial, sans-serif">');
+  s.push('<rect width="'+W+'" height="'+H+'" fill="#FFFFFF"/>');
+  s.push(svgText(W/2,26,'SỐ LƯỢNG TỪNG HẠNG MỤC THIẾT BỊ','text-anchor="middle" font-size="13.5" font-weight="bold" fill="'+S.titleColor+'"'));
+  const bw=W-padL-padR;
+  data.forEach((d,i)=>{
+    const y=padT+i*rowH;
+    const w=bw*d.qty/maxV;
+    s.push(svgText(padL-8,y+16,d.cat,'text-anchor="end" font-size="11.5" fill="#1a2333"'));
+    s.push('<rect x="'+padL+'" y="'+(y+4)+'" width="'+w+'" height="16" rx="3" fill="'+PALETTE[i%PALETTE.length]+'"/>');
+    s.push(svgText(padL+w+8,y+16,String(d.qty),'font-size="11.5" font-weight="bold" fill="#1a2333"'));
+  });
+  s.push('</svg>'); return s.join('\n');
+}
+function renderEquipStats(){
+  const host=$('#equipStats'); if(!host) return;
+  const gStats=equipGroupStats(), cStats=equipCategoryStats();
+  const totalG=gStats.reduce((s,d)=>s+d.qty,0), totalC=cStats.reduce((s,d)=>s+d.qty,0);
+  let h='<div class="row" style="align-items:flex-start;gap:14px;flex-wrap:wrap;">';
+  h+='<div style="flex:1;min-width:260px;"><table class="grid"><thead><tr><th>Nhóm</th><th class="proj">Số lượng</th></tr></thead><tbody>';
+  gStats.forEach(d=>{ h+='<tr><td>'+esc(d.group)+'</td><td style="text-align:center;">'+d.qty+'</td></tr>'; });
+  h+='<tr class="totals"><td>Tổng cộng</td><td>'+totalG+'</td></tr></tbody></table></div>';
+  h+='<div style="flex:1;min-width:260px;"><table class="grid"><thead><tr><th>Hạng mục</th><th class="proj">Số lượng</th></tr></thead><tbody>';
+  cStats.forEach(d=>{ h+='<tr><td>'+esc(d.cat)+'</td><td style="text-align:center;">'+d.qty+'</td></tr>'; });
+  h+='<tr class="totals"><td>Tổng cộng</td><td>'+totalC+'</td></tr></tbody></table></div>';
+  h+='</div>';
+  h+='<div class="tbl-toolbar" style="margin-top:14px;"><select id="equipScale" style="width:auto;"><option value="2">2×</option><option value="3" selected>3×</option><option value="4">4×</option></select><button class="btn primary small" onclick="exportEquipPNG()">📷 Xuất PNG (2 chart)</button></div>';
+  h+='<div class="row" style="align-items:flex-start;gap:14px;flex-wrap:wrap;">';
+  h+='<div class="chart-card" style="flex:1;min-width:340px;">'+buildEquipDonutSVG()+'</div>';
+  h+='<div class="chart-card" style="flex:1;min-width:340px;">'+buildEquipBarSVG()+'</div>';
+  h+='</div>';
+  host.innerHTML=h;
+}
+function exportEquipPNG(){
+  const scale=+(($('#equipScale')||{}).value||3);
+  svgToPNG(buildEquipDonutSVG(), scale, 'equipment_group_'+scale+'x.png');
+  setTimeout(()=>svgToPNG(buildEquipBarSVG(), scale, 'equipment_category_'+scale+'x.png'), 400);
+}
+
+/* ---------------- ASSETS: PHẦN MỀM ---------------- */
+const SOFTWARE_STATUS_OPTIONS = ['POS hiện có','Mua khi có dự án EPC','Đang tiến hành mua','Chưa xác định'];
+const SOFTWARE_STATUS_COLORS = {'Mua khi có dự án EPC':'#FFF9C4','POS hiện có':'#DCF3DC','Đang tiến hành mua':'#DCF3DC','Chưa xác định':'#EFEFEF'};
+function softDiscOptions(cur){ return discOptionsNoAdd(cur, ['All disciplines']); }
+function softwareGroups(){
+  const master=masterDisciplines().concat(['All disciplines']);
+  const rows=S.softwareRows||[];
+  const byDisc={}; rows.forEach(r=>{ const d=r.disc||''; (byDisc[d]=byDisc[d]||[]).push(r); });
+  const present=Object.keys(byDisc);
+  const ordered=master.filter(d=>byDisc[d]).concat(present.filter(d=>!master.includes(d)));
+  return ordered.map(disc=>({disc, rows:byDisc[disc]}));
+}
+function updateSoft(id,key,value){
+  const r=(S.softwareRows||[]).find(x=>x.id===id); if(!r) return;
+  if(key==='qty') r[key]= value===''? '' : (Number(value)||0); else r[key]=value;
+  renderAssets();
+}
+function addSoftRow(){
+  const r={id:uid(), disc:masterDisciplines()[0]||'', name:'Phần mềm mới', func:'', vendor:'', standard:'', qty:1, status:'Chưa xác định', note:''};
+  S.softwareRows.push(r); renderAssets(); toast('Đã thêm phần mềm mới');
+}
+function delSoftRow(id){
+  if(!confirm('Xóa phần mềm này?')) return;
+  S.softwareRows=S.softwareRows.filter(x=>x.id!==id); renderAssets();
+}
+function renderSoftList(){
+  const host=$('#tblSoft'); if(!host) return;
+  const groups=softwareGroups();
+  let h='<table class="grid"><thead><tr><th style="min-width:34px;">STT</th><th style="min-width:150px;">Bộ môn</th><th style="min-width:200px;">Phần mềm</th><th style="min-width:200px;">Chức năng chính</th><th style="min-width:130px;">Nhà cung cấp</th><th style="min-width:130px;">Tiêu chuẩn áp dụng</th><th style="min-width:70px;">Số lượng</th><th style="min-width:170px;">POS hiện có / Mua mới</th><th style="min-width:200px;">Ghi chú</th><th></th></tr></thead><tbody>';
+  let n=0;
+  groups.forEach(g=>{
+    const col= g.disc==='All disciplines'? '#4A5568' : discColorOf(g.disc);
+    h+='<tr class="grouphead"><td colspan="10" style="background:'+col+';">'+esc(g.disc)+' — '+g.rows.length+' phần mềm</td></tr>';
+    g.rows.forEach(r=>{
+      n++;
+      const stColor=SOFTWARE_STATUS_COLORS[r.status]||'#fff';
+      h+='<tr data-id="'+r.id+'">';
+      h+='<td class="rownum">'+n+'</td>';
+      h+='<td class="disc-cell"><select onchange="updateSoft(\''+r.id+'\',\'disc\',this.value)">'+softDiscOptions(r.disc)+'</select></td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateSoft(\''+r.id+'\',\'name\',this.textContent.trim())">'+esc(r.name)+'</td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateSoft(\''+r.id+'\',\'func\',this.textContent.trim())">'+esc(r.func)+'</td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateSoft(\''+r.id+'\',\'vendor\',this.textContent.trim())">'+esc(r.vendor)+'</td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateSoft(\''+r.id+'\',\'standard\',this.textContent.trim())">'+esc(r.standard)+'</td>';
+      h+='<td><input class="mini-input" type="number" min="0" value="'+(r.qty===''?'':r.qty)+'" onchange="updateSoft(\''+r.id+'\',\'qty\',this.value)"></td>';
+      h+='<td style="background:'+stColor+';"><select style="background:transparent;border:none;" onchange="updateSoft(\''+r.id+'\',\'status\',this.value)"><option value="">—</option>'+SOFTWARE_STATUS_OPTIONS.map(o=>'<option '+(o===r.status?'selected':'')+'>'+o+'</option>').join('')+'</select></td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateSoft(\''+r.id+'\',\'note\',this.textContent.trim())">'+esc(r.note)+'</td>';
+      h+='<td class="delcell"><button title="Xóa" onclick="delSoftRow(\''+r.id+'\')">✕</button></td>';
+      h+='</tr>';
+    });
+  });
+  h+='</tbody></table>';
+  host.innerHTML=h;
+}
+function softwareStatusStats(){
+  const rows=S.softwareRows||[];
+  const cats=SOFTWARE_STATUS_OPTIONS.slice();
+  const by={}; cats.forEach(c=>by[c]=0);
+  rows.forEach(r=>{ const st=r.status||''; if(!st) by['Chưa xác định']++; else by[st]=(by[st]||0)+1; });
+  return cats.map(c=>({status:c, n:by[c]||0}));
+}
+function buildSoftStatusSVG(){
+  const data=softwareStatusStats();
+  const total=data.reduce((s,d)=>s+d.n,0)||1;
+  const W=760,H=380,padL=60,padR=24,padT=60,padB=90,cw=W-padL-padR,ch=H-padT-padB;
+  const maxV=Math.max(...data.map(d=>d.n),1);
+  const s=[]; s.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Arial, sans-serif">');
+  s.push('<rect width="'+W+'" height="'+H+'" fill="#FFFFFF"/><rect x="0" y="0" width="'+W+'" height="5" fill="'+S.deColor+'"/>');
+  s.push(svgText(W/2,30,'THỐNG KÊ SỐ LƯỢNG PHẦN MỀM THEO PHÂN LOẠI ('+total+')','text-anchor="middle" font-size="14.5" font-weight="bold" fill="'+S.titleColor+'"'));
+  const bw=Math.min(90, cw/data.length*0.55);
+  data.forEach((d,i)=>{
+    const cx=padL+cw*(i+0.5)/data.length;
+    const bh=ch*d.n/maxV, y=padT+ch-bh;
+    const col=PALETTE[i%PALETTE.length];
+    s.push('<rect x="'+(cx-bw/2)+'" y="'+y+'" width="'+bw+'" height="'+bh+'" rx="4" fill="'+col+'"/>');
+    s.push(svgText(cx,y-7,String(d.n),'text-anchor="middle" font-size="13" font-weight="bold" fill="'+col+'"'));
+    const lines=wrap(d.status, cw/data.length-6, '11px Arial');
+    let yy=padT+ch+18; lines.slice(0,3).forEach(ln=>{ s.push(svgText(cx,yy,ln,'text-anchor="middle" font-size="10.5" fill="#1a2333"')); yy+=13; });
+  });
+  s.push('</svg>'); return s.join('\n');
+}
+function renderSoftStats(){
+  const host=$('#softStats'); if(!host) return;
+  const data=softwareStatusStats(); const total=data.reduce((s,d)=>s+d.n,0);
+  let h='<table class="grid" style="max-width:420px;"><thead><tr><th>Phân loại</th><th class="proj">Số lượng</th></tr></thead><tbody>';
+  data.forEach(d=>{ h+='<tr><td>'+esc(d.status)+'</td><td style="text-align:center;">'+d.n+'</td></tr>'; });
+  h+='<tr class="totals"><td>Tổng cộng</td><td>'+total+'</td></tr></tbody></table>';
+  h+='<div class="tbl-toolbar" style="margin-top:14px;"><select id="softScale" style="width:auto;"><option value="2">2×</option><option value="3" selected>3×</option><option value="4">4×</option></select><button class="btn primary small" onclick="exportSoftPNG()">📷 Xuất PNG</button></div>';
+  h+='<div class="chart-card">'+buildSoftStatusSVG()+'</div>';
+  host.innerHTML=h;
+}
+function exportSoftPNG(){
+  const scale=+(($('#softScale')||{}).value||3);
+  svgToPNG(buildSoftStatusSVG(), scale, 'software_status_'+scale+'x.png');
+}
+
+/* ---------------- ASSETS: TIÊU CHUẨN ---------------- */
+function stdDiscOptions(cur){ return discOptionsNoAdd(cur); }
+function standardsGroups(){
+  const master=masterDisciplines();
+  const rows=S.standardsRows||[];
+  const byDisc={}; rows.forEach(r=>{ const d=r.disc||''; (byDisc[d]=byDisc[d]||[]).push(r); });
+  const present=Object.keys(byDisc);
+  const ordered=master.filter(d=>byDisc[d]).concat(present.filter(d=>!master.includes(d)));
+  return ordered.map(disc=>({disc, rows:byDisc[disc]}));
+}
+function updateStd(id,key,value){
+  const r=(S.standardsRows||[]).find(x=>x.id===id); if(!r) return;
+  r[key]=value; renderAssets();
+}
+function addStdRow(){
+  const r={id:uid(), code:'Mã tiêu chuẩn mới', edition:'', org:'', category:'', fullname:'', disc:masterDisciplines()[0]||'', related:'', status:'Active', scope:''};
+  S.standardsRows.push(r); renderAssets(); toast('Đã thêm tiêu chuẩn mới');
+}
+function delStdRow(id){
+  if(!confirm('Xóa tiêu chuẩn này?')) return;
+  S.standardsRows=S.standardsRows.filter(x=>x.id!==id); renderAssets();
+}
+function renderStdList(){
+  const host=$('#tblStd'); if(!host) return;
+  const groups=standardsGroups();
+  let h='<table class="grid"><thead><tr><th style="min-width:34px;">STT</th><th style="min-width:150px;">Mã tiêu chuẩn</th><th style="min-width:110px;">Phiên bản</th><th style="min-width:80px;">Tổ chức</th><th style="min-width:150px;">Phân loại</th><th style="min-width:260px;">Tên đầy đủ</th><th style="min-width:150px;">Bộ môn chính</th><th style="min-width:150px;">Bộ môn liên quan</th><th style="min-width:80px;">Trạng thái</th><th style="min-width:280px;">Mô tả phạm vi áp dụng</th><th></th></tr></thead><tbody>';
+  let n=0;
+  groups.forEach(g=>{
+    const col=discColorOf(g.disc);
+    h+='<tr class="grouphead"><td colspan="11" style="background:'+col+';">'+esc(g.disc)+' — '+g.rows.length+' tiêu chuẩn</td></tr>';
+    g.rows.forEach(r=>{
+      n++;
+      h+='<tr data-id="'+r.id+'">';
+      h+='<td class="rownum">'+n+'</td>';
+      h+='<td contenteditable spellcheck="false" style="font-weight:bold;" onblur="updateStd(\''+r.id+'\',\'code\',this.textContent.trim())">'+esc(r.code)+'</td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateStd(\''+r.id+'\',\'edition\',this.textContent.trim())">'+esc(r.edition)+'</td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateStd(\''+r.id+'\',\'org\',this.textContent.trim())">'+esc(r.org)+'</td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateStd(\''+r.id+'\',\'category\',this.textContent.trim())">'+esc(r.category)+'</td>';
+      h+='<td contenteditable spellcheck="false" style="white-space:normal;min-width:260px;" onblur="updateStd(\''+r.id+'\',\'fullname\',this.textContent.trim())">'+esc(r.fullname)+'</td>';
+      h+='<td class="disc-cell"><select onchange="updateStd(\''+r.id+'\',\'disc\',this.value)">'+stdDiscOptions(r.disc)+'</select></td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateStd(\''+r.id+'\',\'related\',this.textContent.trim())">'+esc(r.related)+'</td>';
+      h+='<td contenteditable spellcheck="false" onblur="updateStd(\''+r.id+'\',\'status\',this.textContent.trim())">'+esc(r.status)+'</td>';
+      h+='<td contenteditable spellcheck="false" style="white-space:normal;min-width:280px;" onblur="updateStd(\''+r.id+'\',\'scope\',this.textContent.trim())">'+esc(r.scope)+'</td>';
+      h+='<td class="delcell"><button title="Xóa" onclick="delStdRow(\''+r.id+'\')">✕</button></td>';
+      h+='</tr>';
+    });
+  });
+  h+='</tbody></table>';
+  host.innerHTML=h;
+}
+function standardsOrgStats(){
+  const rows=S.standardsRows||[];
+  const by={};
+  rows.forEach(r=>{ const o=r.org||'(Khác)'; by[o]=(by[o]||0)+1; });
+  const entries=Object.entries(by).sort((a,b)=>b[1]-a[1]);
+  const main=entries.filter(([,n])=>n>=4);
+  const otherN=entries.filter(([,n])=>n<4).reduce((s,[,n])=>s+n,0);
+  const out=main.map(([org,n])=>({org,n}));
+  if(otherN>0) out.push({org:'Khác', n:otherN});
+  return out;
+}
+function buildStdOrgSVG(){
+  const data=standardsOrgStats();
+  const total=data.reduce((s,d)=>s+d.n,0)||1;
+  const W=700,rowH=28,padL=110,padR=60,padT=50;
+  const H=padT+data.length*rowH+20;
+  const maxV=Math.max(...data.map(d=>d.n),1);
+  const bw=W-padL-padR;
+  const s=[]; s.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Arial, sans-serif">');
+  s.push('<rect width="'+W+'" height="'+H+'" fill="#FFFFFF"/><rect x="0" y="0" width="'+W+'" height="5" fill="'+S.deColor+'"/>');
+  s.push(svgText(W/2,28,'THỐNG KÊ THEO TỔ CHỨC BAN HÀNH ('+total+' tiêu chuẩn)','text-anchor="middle" font-size="14.5" font-weight="bold" fill="'+S.titleColor+'"'));
+  data.forEach((d,i)=>{
+    const y=padT+i*rowH; const w=bw*d.n/maxV;
+    s.push(svgText(padL-8,y+15,d.org,'text-anchor="end" font-size="11.5" font-weight="bold" fill="#1a2333"'));
+    s.push('<rect x="'+padL+'" y="'+(y+3)+'" width="'+w+'" height="16" rx="3" fill="'+PALETTE[i%PALETTE.length]+'"/>');
+    s.push(svgText(padL+w+8,y+15,String(d.n),'font-size="11.5" font-weight="bold" fill="#1a2333"'));
+  });
+  s.push('</svg>'); return s.join('\n');
+}
+function renderStdStats(){
+  const host=$('#stdStats'); if(!host) return;
+  const data=standardsOrgStats(); const total=data.reduce((s,d)=>s+d.n,0);
+  let h='<table class="grid" style="max-width:420px;"><thead><tr><th>Tổ chức</th><th class="proj">Số tiêu chuẩn</th></tr></thead><tbody>';
+  data.forEach(d=>{ h+='<tr><td>'+esc(d.org)+'</td><td style="text-align:center;">'+d.n+'</td></tr>'; });
+  h+='<tr class="totals"><td>TỔNG CỘNG</td><td>'+total+'</td></tr></tbody></table>';
+  h+='<div class="tbl-toolbar" style="margin-top:14px;"><select id="stdScale" style="width:auto;"><option value="2">2×</option><option value="3" selected>3×</option><option value="4">4×</option></select><button class="btn primary small" onclick="exportStdPNG()">📷 Xuất PNG</button></div>';
+  h+='<div class="chart-card">'+buildStdOrgSVG()+'</div>';
+  host.innerHTML=h;
+}
+function exportStdPNG(){
+  const scale=+(($('#stdScale')||{}).value||3);
+  svgToPNG(buildStdOrgSVG(), scale, 'standards_by_org_'+scale+'x.png');
+}
 </script>
 </body>
 </html>
