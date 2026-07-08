@@ -1,0 +1,2009 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POS – Detailed Engineering | IMA Org Chart Tool</title>
+<style>
+:root{
+  --navy:#1B2C5C; --navy-2:#24408E; --red:#D91F24; --red-soft:#FDEBEC;
+  --bg:#F4F6FB; --panel:#FFFFFF; --line:#E1E7F3; --gray:#6B7488; --gray-2:#9AA2B4;
+  --green:#2E9E5B; --amber:#C77700;
+  font-family: Arial, 'Segoe UI', sans-serif;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{background:var(--bg); color:#1a2333; font-family:Arial,'Segoe UI',sans-serif; font-size:13.5px;}
+
+/* ===== Top bar ===== */
+header.appbar{background:var(--navy); color:#fff; padding:10px 18px 0; box-shadow:0 2px 8px rgba(27,44,92,.25);}
+.appbar .brand{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;}
+.appbar .brand b{font-size:16px; letter-spacing:.5px;}
+.appbar .brand span{color:#B9C8E8; font-size:12px;}
+.appbar .brand .dot{width:8px;height:8px;background:var(--red);display:inline-block;border-radius:1px;}
+.tabs{display:flex; gap:4px; margin-top:10px; flex-wrap:wrap;}
+.tabs button{background:transparent; color:#C7D3EC; border:none; padding:9px 16px 10px; font-size:13px; font-weight:bold; cursor:pointer; border-radius:6px 6px 0 0; font-family:inherit;}
+.tabs button:hover{background:rgba(255,255,255,.08); color:#fff;}
+.tabs button.active{background:var(--bg); color:var(--navy);}
+.tabs button .cnt{font-weight:normal; color:var(--gray-2); font-size:11px;}
+.appbar .actions{float:right; display:flex; gap:8px; margin-top:-30px;}
+
+main{padding:14px 18px 40px;}
+.view{display:none;}
+.view.active{display:block;}
+
+/* ===== generic ===== */
+.btn{background:#fff; border:1px solid var(--line); color:var(--navy); padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12.5px; font-weight:bold; font-family:inherit;}
+.btn:hover{border-color:var(--navy); }
+.btn.primary{background:var(--red); border-color:var(--red); color:#fff;}
+.btn.primary:hover{background:#b81a1e;}
+.btn.navy{background:var(--navy); border-color:var(--navy); color:#fff;}
+.btn.small{padding:3px 8px; font-size:11.5px;}
+.btn.ghost{border-color:transparent; background:transparent;}
+input[type=text], input[type=number], select, textarea{border:1px solid var(--line); border-radius:5px; padding:5px 7px; font-size:12.5px; font-family:inherit; background:#fff; color:#1a2333; width:100%;}
+input[type=color]{border:1px solid var(--line); border-radius:4px; height:26px; width:36px; padding:1px; background:#fff; cursor:pointer;}
+input:focus, select:focus{outline:2px solid rgba(36,64,142,.25); border-color:var(--navy-2);}
+label.f{display:block; font-size:11px; color:var(--gray); font-weight:bold; margin:8px 0 3px; text-transform:uppercase; letter-spacing:.3px;}
+.row{display:flex; gap:8px; align-items:center;}
+.row > *{flex:1;}
+.row > .fix{flex:0 0 auto;}
+.hint{font-size:11px; color:var(--gray-2); margin-top:4px; line-height:1.4;}
+.chip{display:inline-block; padding:1px 7px; border-radius:10px; font-size:11px; font-weight:bold;}
+
+/* ===== org chart layout ===== */
+.workspace{display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:start;}
+@media(max-width:1000px){.workspace{grid-template-columns:1fr;}}
+.canvas-card{background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:auto; position:relative; box-shadow:0 1px 4px rgba(27,44,92,.06);}
+.canvas-card svg{display:block;}
+.toolstrip{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px;}
+.toolstrip .sep{width:1px; height:22px; background:var(--line);}
+.sidepanel{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:0; position:sticky; top:10px; max-height:calc(100vh - 90px); overflow:auto; box-shadow:0 1px 4px rgba(27,44,92,.06);}
+.acc{border-bottom:1px solid var(--line);}
+.acc > .acc-h{padding:10px 14px; font-weight:bold; font-size:12.5px; color:var(--navy); cursor:pointer; display:flex; justify-content:space-between; user-select:none;}
+.acc > .acc-h:hover{background:var(--bg);}
+.acc > .acc-b{padding:4px 14px 14px; display:none;}
+.acc.open > .acc-b{display:block;}
+.acc.open > .acc-h .chev{transform:rotate(90deg);}
+.chev{transition:transform .15s; color:var(--gray-2);}
+.itemcard{border:1px solid var(--line); border-radius:7px; padding:9px; margin:8px 0; background:#FBFCFE;}
+.itemcard.sel{border-color:var(--red); box-shadow:0 0 0 2px rgba(217,31,36,.12);}
+.itemcard .ic-h{display:flex; justify-content:space-between; align-items:center; font-weight:bold; font-size:12px; color:var(--navy); cursor:pointer;}
+
+/* SVG interactivity */
+.orgsvg .clickable{cursor:pointer;}
+.orgsvg .clickable:hover{opacity:.85;}
+.orgsvg .selected-outline{stroke:var(--red); stroke-width:2; stroke-dasharray:4 3; fill:none;}
+
+/* ===== tables ===== */
+.table-card{background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:auto; max-height:calc(100vh - 210px); box-shadow:0 1px 4px rgba(27,44,92,.06);}
+table.grid{border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; font-size:12.5px;}
+table.grid th{background:var(--navy); color:#fff; padding:7px 8px; position:sticky; top:0; z-index:5; text-align:left; font-size:12px; white-space:nowrap; border-right:1px solid rgba(255,255,255,.14);}
+table.grid th.proj{text-align:center; min-width:58px; cursor:default;}
+table.grid th .fbtn{cursor:pointer; opacity:.7; margin-left:4px; font-size:10px;}
+table.grid th .fbtn:hover, table.grid th .fbtn.on{opacity:1; color:#FFC9CB;}
+table.grid td{border-bottom:1px solid var(--line); border-right:1px solid var(--line); padding:4px 7px; background:#fff; white-space:nowrap;}
+table.grid tr:nth-child(even) td{background:#FBFCFE;}
+table.grid tr:hover td{background:#F0F4FC;}
+table.grid td[contenteditable]{min-width:70px;}
+table.grid td[contenteditable]:focus{outline:2px solid var(--navy-2); background:#fff;}
+td.tick{cursor:pointer; text-align:center; font-weight:bold; user-select:none; min-width:58px;}
+td.tick .tk-new{color:var(--red);}
+td.tick .tk-old{color:var(--navy);}
+td.tick .tk-txt{color:var(--amber); font-weight:normal; font-size:11px;}
+td.tick:hover{background:#FFF3E8 !important;}
+td.rownum{color:var(--gray-2); text-align:center;}
+td.delcell button{border:none; background:none; color:var(--gray-2); cursor:pointer; font-size:13px;}
+td.delcell button:hover{color:var(--red);}
+tr.totals td{background:var(--navy) !important; color:#fff; font-weight:bold; text-align:center; position:sticky; bottom:0;}
+tr.totals td:first-child{text-align:left;}
+.tbl-toolbar{display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;}
+.tbl-toolbar .legend-note{font-size:11.5px; color:var(--gray); background:#fff; border:1px solid var(--line); border-radius:6px; padding:5px 10px;}
+.tbl-toolbar .legend-note b{font-weight:bold;}
+.badge-de{background:var(--red-soft); color:var(--red);}
+.badge-ce{background:#E9EEF9; color:var(--navy);}
+
+/* filter popup */
+.fpop{position:fixed; z-index:50; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:0 8px 24px rgba(27,44,92,.25); width:230px; padding:10px; font-size:12.5px;}
+.fpop .fp-list{max-height:220px; overflow:auto; margin:8px 0; border:1px solid var(--line); border-radius:5px; padding:4px;}
+.fpop .fp-list label{display:flex; gap:6px; padding:2px 4px; font-size:12px; cursor:pointer; align-items:center;}
+.fpop .fp-list label:hover{background:var(--bg);}
+.fpop .fp-actions{display:flex; gap:6px; justify-content:space-between;}
+
+/* ===== dashboard ===== */
+.dash-grid{display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:start;}
+@media(max-width:1000px){.dash-grid{grid-template-columns:1fr;}}
+.chart-card{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px; margin-bottom:14px; overflow:auto; box-shadow:0 1px 4px rgba(27,44,92,.06);}
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:14px;}
+.kpi{background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--navy); border-radius:8px; padding:10px 12px;}
+.kpi.red{border-left-color:var(--red);}
+.kpi.green{border-left-color:var(--green);}
+.kpi .n{font-size:24px; font-weight:bold; color:var(--navy);}
+.kpi.red .n{color:var(--red);} .kpi.green .n{color:var(--green);}
+.kpi .l{font-size:11px; color:var(--gray); font-weight:bold; margin-top:2px; line-height:1.3;}
+
+.toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:9px 18px; border-radius:8px; font-size:13px; box-shadow:0 6px 20px rgba(0,0,0,.3); z-index:99; opacity:0; transition:opacity .25s; pointer-events:none;}
+.toast.show{opacity:1;}
+
+/* ===== Main / sub tab shell added in revised version ===== */
+.mainview{display:none;}
+.mainview.active{display:block;}
+.subtabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;border-bottom:1px solid var(--line);}
+.subtabs button{background:#fff;border:1px solid var(--line);border-bottom:none;color:var(--navy);padding:8px 13px;border-radius:7px 7px 0 0;font-size:12.5px;font-weight:bold;cursor:pointer;font-family:inherit;}
+.subtabs button:hover{background:#F9FBFF;border-color:#BFCBE2;}
+.subtabs button.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.embed-wrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 1px 4px rgba(27,44,92,.06);overflow:hidden;}
+.embed-toolbar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--line);background:#FBFCFE;}
+.embed-frame{width:100%;height:calc(100vh - 165px);border:0;background:#fff;display:block;}
+.notice{font-size:12px;color:var(--gray);background:#fff;border:1px solid var(--line);border-left:4px solid var(--navy-2);border-radius:8px;padding:8px 11px;line-height:1.45;}
+.fresh-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:14px;}
+.fresh-card{background:#fff;border:1px solid var(--line);border-left:4px solid var(--green);border-radius:9px;padding:11px 12px;box-shadow:0 1px 4px rgba(27,44,92,.05);}
+.fresh-card .n{font-size:26px;font-weight:bold;color:var(--green);}
+.fresh-card .l{font-size:12px;color:var(--gray);font-weight:bold;margin-top:2px;}
+.mh-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.mh-tabs button{background:#fff;border:1px solid var(--line);color:var(--navy);padding:7px 12px;border-radius:7px;font-size:12px;font-weight:bold;cursor:pointer;}
+.mh-tabs button.active{background:var(--red);border-color:var(--red);color:#fff;}
+.mh-view{display:none;}
+.mh-view.active{display:block;}
+.mh-layout{display:grid;grid-template-columns:1fr 340px;gap:14px;align-items:start;}
+@media(max-width:1080px){.mh-layout{grid-template-columns:1fr;}}
+.mh-panel{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;box-shadow:0 1px 4px rgba(27,44,92,.06);}
+.mh-panel h3{font-size:13px;color:var(--navy);text-transform:uppercase;letter-spacing:.6px;margin:0 0 9px;border-bottom:1px solid var(--line);padding-bottom:8px;}
+.mh-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px;}
+.mh-kpi{background:#fff;border:1px solid var(--line);border-left:4px solid var(--navy);border-radius:8px;padding:10px 11px;}
+.mh-kpi.red{border-left-color:var(--red);} .mh-kpi.green{border-left-color:var(--green);}
+.mh-kpi .n{font-size:22px;font-weight:bold;color:var(--navy);}.mh-kpi.red .n{color:var(--red);}.mh-kpi.green .n{color:var(--green);}
+.mh-kpi .l{font-size:11px;color:var(--gray);font-weight:bold;line-height:1.35;}
+.mini-input{width:84px!important;text-align:right;}
+.mh-title-input{font-size:16px;font-weight:bold;color:var(--navy);border:1px dashed transparent;background:transparent;width:100%;padding:4px 6px;}
+.mh-title-input:hover,.mh-title-input:focus{border-color:var(--navy-2);background:#fff;outline:none;}
+.comp-pos{color:var(--red);font-weight:bold;}.comp-sub{color:#2E75B6;font-weight:bold;}.comp-act{color:var(--green);font-weight:bold;}
+
+/* ===== Simple Schedule (IMA / MM3) ===== */
+.schedule-tabs{margin-bottom:10px;}
+.schedule-card{background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 1px 4px rgba(27,44,92,.06);overflow:auto;padding:12px;}
+.schedule-svg-wrap{overflow:auto;border:1px solid var(--line);border-radius:9px;background:#fff;}
+.schedule-svg-wrap svg{display:block;min-width:100%;}
+.sched-edit-wrap{margin-top:12px;border:1px solid var(--line);border-radius:9px;overflow:auto;background:#fff;}
+.sched-edit-title{display:flex;justify-content:space-between;gap:8px;align-items:center;background:#FBFCFE;border-bottom:1px solid var(--line);padding:8px 10px;color:var(--navy);font-size:12px;font-weight:bold;}
+table.sched-edit{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:12px;}
+table.sched-edit th{background:var(--navy);color:#fff;text-align:left;position:sticky;top:0;z-index:2;padding:6px 8px;border-right:1px solid rgba(255,255,255,.14);white-space:nowrap;}
+table.sched-edit td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:4px 6px;background:#fff;white-space:nowrap;}
+table.sched-edit tr:nth-child(even) td{background:#FBFCFE;}
+table.sched-edit input[type=text],table.sched-edit input[type=date]{height:26px;padding:3px 6px;font-size:12px;}
+table.sched-edit input[type=color]{width:34px;height:24px;}
+.schedule-note{font-size:11.5px;color:var(--gray);line-height:1.45;}
+
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="brand">
+    <span class="dot"></span><b>PTSC OFFSHORE SERVICES (POS)</b>
+    <span>Detailed Engineering Team · Organization Chart · Man-hour · Schedule</span>
+    <span style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn small" onclick="saveJSON()">💾 Lưu dữ liệu (JSON)</button>
+      <button class="btn small navy" onclick="exportHTML()">⬇ Export HTML (kèm dữ liệu)</button>
+      <button class="btn small" onclick="document.getElementById('loadfile').click()">📂 Mở dữ liệu</button>
+      <input type="file" id="loadfile" accept=".json" style="display:none" onchange="loadJSON(this)">
+      <button class="btn small" onclick="resetData()">↺ Về dữ liệu gốc</button>
+    </span>
+  </div>
+  <nav class="tabs main-tabs">
+    <button data-main="orgsuite" class="active" onclick="showMain('orgsuite')">Organization Chart</button>
+    <button data-main="manhour" onclick="showMain('manhour')">Man-hour</button>
+    <button data-main="scheduler" onclick="showMain('scheduler')">Schedule</button>
+  </nav>
+</header>
+<main>
+  <section class="mainview active" id="main-orgsuite">
+    <div class="subtabs">
+      <button data-v="org" class="active" onclick="showView('org')">Sơ đồ tổ chức</button>
+      <button data-v="ima" onclick="showView('ima')">DS_TK_IMA</button>
+      <button data-v="all" onclick="showView('all')">DS_TK_ALL</button>
+      <button data-v="titles" onclick="showView('titles')">Thống kê chức danh</button>
+      <button data-v="fresh" onclick="showView('fresh')">Fresh Engineer</button>
+      <button data-v="dash" onclick="showView('dash')">Biểu đồ & Thống kê</button>
+    </div>
+
+    <section class="view active" id="view-org">
+      <div class="toolstrip">
+        <button class="btn navy" onclick="addBlock()">＋ Thêm khối (Discipline)</button>
+        <button class="btn" onclick="addBoundaryUI()">＋ Thêm Boundary</button>
+        <span class="sep"></span>
+        <label style="font-size:12px; color:var(--gray); font-weight:bold;">Thu phóng:</label>
+        <select id="orgZoom" style="width:auto;" onchange="renderOrg()">
+          <option value="0.5">50%</option>
+          <option value="0.7">70%</option>
+          <option value="1" selected>100%</option>
+          <option value="1.3">130%</option>
+        </select>
+        <span class="sep"></span>
+        <label style="font-size:12px; color:var(--gray); font-weight:bold;">Độ nét xuất PNG:</label>
+        <select id="orgScale" style="width:auto;">
+          <option value="2">2× (≈3800px – chiếu slide)</option>
+          <option value="3" selected>3× (≈5700px – rất nét)</option>
+          <option value="4">4× (in ấn)</option>
+        </select>
+        <button class="btn primary" onclick="exportOrgPNG()">📷 Xuất PNG</button>
+        <span class="hint" style="margin-left:auto;">Tên đỏ = Detailed Engineering · tên đen đậm = Construction Engineering. Lead sẽ không bị lặp ở danh sách team member.</span>
+      </div>
+      <div class="workspace">
+        <div class="canvas-card" id="orgCanvas"></div>
+        <div class="sidepanel" id="orgPanel"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-ima">
+      <div class="tbl-toolbar">
+        <button class="btn navy" onclick="addPersonRow('ima')">＋ Thêm hàng</button>
+        <button class="btn" onclick="clearFilters('ima')">Xóa bộ lọc</button>
+        <span class="legend-note">Nhấp ô dự án để tick: <b class="tk-new" style="color:var(--red)">✓ tick mới</b> → <b style="color:var(--navy)">X tick gốc Excel</b> → trống.</span>
+        <span class="legend-note">Sheet này = <b>năng lực làm IMA lý tưởng / Detailed Engineering</b>. Tick ở đây nhưng không tick IMA bên DS_TK_ALL ⇒ có năng lực nhưng đang bận dự án khác.</span>
+      </div>
+      <div class="table-card" id="tblIMA"></div>
+    </section>
+
+    <section class="view" id="view-all">
+      <div class="tbl-toolbar">
+        <button class="btn navy" onclick="addPersonRow('all')">＋ Thêm hàng</button>
+        <button class="btn" onclick="clearFilters('all')">Xóa bộ lọc</button>
+        <span class="legend-note">Sheet này = <b>phân bổ dự án thực tế</b>. Tick IMA tại đây ⇒ nhân sự đang thực sự điều động vào IMA và được đưa vào MHR of POS.</span>
+        <span class="legend-note">Tick Trainee/Trainnee sẽ được tính là <b>Fresh Engineer</b> theo từng discipline.</span>
+      </div>
+      <div class="table-card" id="tblALL"></div>
+    </section>
+
+    <section class="view" id="view-titles">
+      <div class="tbl-toolbar">
+        <button class="btn navy" onclick="showView('ima')">← Chỉnh chức danh ở DS_TK_IMA</button>
+        <span class="legend-note">Đếm theo 4 cấp: <b>Leader → Senior → Junior → Fresher</b> (từ cột Chức danh; tick Trainee ⇒ Fresher). Vị trí <b>TBA</b> không được tính.</span>
+        <span class="legend-note">Màu cột lấy đúng màu khối discipline trên Sơ đồ tổ chức — <b>đậm nhất ở Leader, nhạt dần đến Fresher</b>.</span>
+      </div>
+      <div id="titleStats"></div>
+    </section>
+
+    <section class="view" id="view-fresh">
+      <div class="tbl-toolbar">
+        <button class="btn" onclick="showView('all')">Mở DS_TK_ALL để tick Trainee</button>
+        <span class="legend-note">Fresh Engineer = nhân sự có tick ở cột Trainee/Trainnee. Số liệu tự cập nhật khi sửa DS_TK_ALL.</span>
+      </div>
+      <div id="freshSummary"></div>
+      <div class="table-card" id="freshTable"></div>
+    </section>
+
+    <section class="view" id="view-dash">
+      <div class="kpis" id="kpis"></div>
+      <div class="dash-grid">
+        <div>
+          <div class="chart-card"><div id="chart1"></div></div>
+          <div class="chart-card"><div id="chart2"></div></div>
+        </div>
+        <div class="sidepanel" id="dashPanel"></div>
+      </div>
+    </section>
+  </section>
+
+  <section class="mainview" id="main-manhour">
+    <div class="toolstrip">
+      <button class="btn navy" onclick="showView('all')">← Cập nhật DS_TK_ALL</button>
+      <button class="btn primary" onclick="exportManhourPNG()">📷 Xuất Man-hour PNG</button>
+      <span class="notice">Logic mới: nhân sự tick IMA trong DS_TK_ALL được xem là <b>nhân sự IMA thực tế</b>; discipline Lead/Leader mặc định là Senior + Discipline + Engineer, các nhân sự khác mặc định Discipline + Engineer và có thể chỉnh lại từng người.</span>
+    </div>
+    <div class="mh-kpis" id="mhKpis"></div>
+    <div class="mh-layout">
+      <div>
+        <div class="mh-tabs">
+          <button data-mh="staff" class="active" onclick="showMH('staff')">Nhân sự IMA thực tế</button>
+          <button data-mh="mhr" onclick="showMH('mhr')">MHR of POS</button>
+          <button data-mh="chart" onclick="showMH('chart')">Man-hour chart</button>
+        </div>
+        <section class="mh-view active" id="mh-staff"><div class="table-card" id="mhStaffTable"></div></section>
+        <section class="mh-view" id="mh-mhr"><div class="table-card" id="mhSummaryTable"></div></section>
+        <section class="mh-view" id="mh-chart"><div class="chart-card"><div id="mhChart"></div></div></section>
+      </div>
+      <div class="mh-panel" id="mhPanel"></div>
+    </div>
+  </section>
+
+  <section class="mainview" id="main-scheduler">
+    <div class="subtabs schedule-tabs">
+      <button data-sch="ima" class="active" onclick="showSchedule('ima')">Schedule IMA</button>
+      <button data-sch="mm3" onclick="showSchedule('mm3')">Schedule MM3</button>
+    </div>
+    <div class="toolstrip">
+      <label style="font-size:12px;color:var(--gray);font-weight:bold;">Độ nét xuất PNG:</label>
+      <select id="scheduleScale" style="width:auto;">
+        <option value="2">2×</option>
+        <option value="3" selected>3× – slide</option>
+        <option value="4">4×</option>
+      </select>
+      <button class="btn primary" onclick="exportSchedulePNG()">📷 Xuất Schedule PNG</button>
+      <span class="notice">Schedule hiển thị timeline, duration theo discipline/work unit và milestones. Không hiển thị nhân lực/headcount.</span>
+    </div>
+    <div class="schedule-card" id="scheduleCard"></div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+<script id="embeddedData" type="application/json">null</script>
+<script>
+/* ================================================================
+   POS – IMA Organization & Resource Tool
+   Single-file app. Data lives in memory; use 💾 Lưu dữ liệu (JSON)
+   to save your work and 📂 Mở dữ liệu to restore it.
+   ================================================================ */
+/* ============ SOURCE DATA (extracted from IMA_POS_org_chart_template.xlsx) ============ */
+const PROJECTS_IMA = ['IMA','STT2','LDV','TNHA','Block B','Lower Zakum','MM1','COMP4','Ruya 12','Ruya 13','BH1'];
+const PROJECTS_ALL = ['IMA','STT2','LDV','TNHA','Block B','Lower Zakum','MM1','COMP4','Ruya 12','Ruya 13','BH1','LDV PL','Trainnee'];
+const NON_PROJECT_COLS = ['Trainnee','Trainee']; // status columns – not counted as CE projects
+
+function defaultSchedules(){
+  const blue='#2E75B6', steel='#4FB6D9', green='#6DBE45', navy='#1B2C5C', red='#D91F24';
+  return {
+    ima:{
+      title:'IMA DETAILED ENGINEERING SCHEDULE',
+      subtitle:'PTSC OFFSHORE SERVICES (POS) · IMA PROJECT',
+      start:'2026-08-01', end:'2028-07-31',
+      milestones:[
+        {label:'Start Engineering', date:'2026-08-01', color:red},
+        {label:'Major Engineering Packages Start', date:'2026-10-27', color:red},
+        {label:'Telecom Package Start', date:'2027-10-19', color:red},
+        {label:'Final Deliverables / Close-out', date:'2028-07-15', color:red}
+      ],
+      bars:[
+        {label:'Process', start:'2026-08-01', end:'2027-01-06'},
+        {label:'Piping', start:'2026-08-01', end:'2027-06-18'},
+        {label:'Structural / Civil', start:'2026-08-01', end:'2027-07-23'},
+        {label:'Mechanical', start:'2026-08-01', end:'2027-07-06'},
+        {label:'Electrical', start:'2026-09-19', end:'2027-06-18'},
+        {label:'Instrument', start:'2026-10-27', end:'2027-10-16', color:steel},
+        {label:'Telecom', start:'2027-10-19', end:'2027-12-24', color:steel},
+        {label:'Process Safety', start:'2026-09-06', end:'2027-04-21', color:navy},
+        {label:'Material / Corrosion', start:'2027-12-27', end:'2027-12-30', color:navy},
+        {label:'Environmental', start:'2028-01-02', end:'2028-01-08', color:navy},
+        {label:'HVAC', start:'2028-04-13', end:'2028-05-01', color:navy},
+        {label:'Others / Close-out', start:'2028-07-09', end:'2028-07-15', color:navy}
+      ]
+    },
+    mm3:{
+      title:'MM3 DETAILED ENGINEERING SCHEDULE',
+      subtitle:'PTSC OFFSHORE SERVICES (POS) · MM3 PROJECT',
+      start:'2026-06-01', end:'2028-06-30',
+      milestones:[
+        {label:'Contract Effective Date', date:'2026-08-01', color:red},
+        {label:'KOM / LOA to Eng. Subcontractor', date:'2026-08-15', color:red},
+        {label:'Start Engineering', date:'2026-08-17', color:red},
+        {label:'Complete Engineering', date:'2028-05-22', color:red}
+      ],
+      bars:[
+        {label:'Project Management', start:'2026-08-16', end:'2028-01-18', color:green},
+        {label:'Engineering Site Survey', start:'2026-09-14', end:'2026-12-16', color:green},
+        {label:'Process', start:'2026-08-16', end:'2027-10-27'},
+        {label:'Instrument', start:'2026-08-17', end:'2028-02-16', color:steel},
+        {label:'Safety / Loss Prevention', start:'2026-08-16', end:'2028-02-16', color:steel},
+        {label:'Piping', start:'2026-08-16', end:'2027-12-28'},
+        {label:'Electrical', start:'2026-08-17', end:'2028-05-22'},
+        {label:'Structural / Civil', start:'2026-08-17', end:'2028-03-27'},
+        {label:'Mechanical', start:'2026-08-17', end:'2027-07-21'},
+        {label:'Telecom', start:'2026-08-17', end:'2028-01-18', color:steel}
+      ]
+    }
+  };
+}
+
+const SEED_PEOPLE = [{"msnv":"POS000704","name":"Dương Văn Lưu","title":"Tổ trưởng Tổ thiết kế","email":"luudv@ptsc.com.vn","disc":"Structure","role":"PMT","tIMA":{},"tALL":{"Block B":"X","LDV PL":"X"},"id":"p1"},{"msnv":"POS000702","name":"Lê Văn Dư","title":"Tổ phó Tổ thiết kế","email":"dule@ptsc.com.vn","disc":"Process","role":"PMT","tIMA":{"IMA":"X"},"tALL":{"IMA":"X","Lower Zakum":"X","COMP4":"X"},"id":"p2"},{"msnv":"POS001372","name":"Nguyễn Hữu Ân","title":"Chuyên viên cấp cao","email":"annh02@ptsc.com.vn","disc":"EIT","role":"Instrument & Telecom leader","tIMA":{"IMA":"X"},"tALL":{"IMA":"X","Lower Zakum":"X"},"id":"p3"},{"msnv":"POS000866","name":"Nguyễn Hồng Quân","title":"Chuyên viên thiết kế thi công hàng hải","email":"quannguyenhong@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{"IMA":"Chuyển T&I"},"tALL":{"IMA":"Chuyển T&I"},"id":"p4"},{"msnv":"POS001006","name":"Nguyễn Văn Tùng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"tungnv01@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{},"tALL":{"MM1":"X","COMP4":"X","BH1":"X"},"id":"p5"},{"msnv":"POS001035","name":"Hồ Thanh Phong","title":"Chuyên viên thiết kế thi công hàng hải","email":"phonght01@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{"IMA":"Chuyển T&I"},"tALL":{"IMA":"Chuyển T&I"},"id":"p6"},{"msnv":"POS001156","name":"Vũ Trần Nam Long","title":"Chuyên viên thiết kế thi công hàng hải","email":"longvtn@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{},"tALL":{"COMP4":"X","Ruya 12":"X"},"id":"p7"},{"msnv":"POS001182","name":"Nguyễn Chí Kiên","title":"Chuyên viên thiết kế thi công hàng hải","email":"kiennc@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{},"tALL":{"IMA":"X","LDV PL":"X"},"id":"p8"},{"msnv":"POS001145","name":"Nguyễn Sỹ Hùng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"hungns@ptsc.com.vn","disc":"Structure","role":"Structure Leader","tIMA":{},"tALL":{"TNHA":"X","MM1":"X"},"id":"p9"},{"msnv":"POS000957","name":"Nguyễn Thanh Sơn","title":"Chuyên viên Dự án đấu nối và chạy thử","email":"sonnguyenthanh@ptsc.com.vn","disc":"Piping","role":"Piping Leader","tIMA":{"IMA":"X"},"tALL":{"IMA":"X","LDV":"X"},"id":"p10"},{"msnv":"POS001106","name":"Lê Nguyễn Minh Hoàng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"hoanglnm@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{},"id":"p11"},{"msnv":"POS001003","name":"Tô Hạ Long","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"longtoha@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"Block B":"X","Ruya 12":"X","Ruya 13":"X"},"id":"p12"},{"msnv":"POS001108","name":"Phan Hồng Duy","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"duyph@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{},"id":"p13"},{"msnv":"POS001073","name":"Nguyễn Hải Hưng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"hungnh02@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"COMP4":"X","Ruya 12":"X","Ruya 13":"X"},"id":"p14"},{"msnv":"POS001214","name":"Nguyễn Quốc Gia Liêm","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"liemnqg@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{},"tALL":{"Block B":"X","Ruya 12":"X"},"id":"p15"},{"msnv":"POS001209","name":"Trần Phạm Thanh Tân","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"tantpt@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{"IMA":"X"},"tALL":{"IMA":"X"},"id":"p16"},{"msnv":"POS001100","name":"Nguyễn Tấn Dũng","title":"Chuyên viên dự án vận chuyển và lắp đặt","email":"dungnt01@ptsc.com.vn","disc":"Naval Architect","role":"Naval Architect","tIMA":{"IMA":"Chuyển T&I"},"tALL":{"IMA":"Chuyển T&I"},"id":"p17"},{"msnv":"POS001238","name":"Đỗ Hữu Vượng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"vuongdh@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"Lower Zakum":"X","COMP4":"X","Ruya 12":"X"},"id":"p18"},{"msnv":"POS001246","name":"Dương Ngọc Trai","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"traidn@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{"IMA":"X"},"tALL":{"TNHA":"X"},"id":"p19"},{"msnv":"POS001249","name":"Võ Trần Anh Tuấn","title":"Chuyên viên thiết kế đường ống ngầm","email":"tuanvta@ptsc.com.vn","disc":"PipeLine","role":"PipeLine","tIMA":{},"tALL":{"LDV PL":"X"},"id":"p20"},{"msnv":"POS001262","name":"Phạm Thị Minh Châu","title":"Chuyên viên cấp cao (mảng công nghệ)","email":"chauptm@ptsc.com.vn","disc":"Process","role":"Process Leader","tIMA":{"IMA":"X"},"tALL":{"IMA":"X"},"id":"p21"},{"msnv":"POS001279","name":"Trần Việt Dũng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"dungtv01@ptsc.com.vn","disc":"Mechanical","role":"Mechanical Leader","tIMA":{"IMA":"X"},"tALL":{"STT2":"X","Lower Zakum":"X","COMP4":"X"},"id":"p22"},{"msnv":"POS000501","name":"Lê Quang Huy","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"huyquangle@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{},"tALL":{},"id":"p23"},{"msnv":"POS000840","name":"Nguyễn Trọng Trịnh","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"trinhnguyentrong@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{},"tALL":{"Block B":"X"},"id":"p24"},{"msnv":"POS000895","name":"Phạm Thế Chung","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"chungpt@ptsc.com.vn","disc":"Structure","role":"Scaffolding","tIMA":{"IMA":"X"},"tALL":{"COMP4":"X","Ruya 12":"X"},"id":"p25"},{"msnv":"POS000921","name":"Kim Ngọc Dũng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"dungkn@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{"IMA":"X"},"tALL":{"STT2":"X","Lower Zakum":"X","MM1":"X"},"id":"p26"},{"msnv":"POS001004","name":"Vũ Tuấn Minh","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"minhvt@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{},"id":"p27"},{"msnv":"POS001289","name":"Lữ Thành Phong","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"phonglt03@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{"IMA":"X"},"tALL":{"STT2":"X","TNHA":"X","Lower Zakum":"X"},"id":"p28"},{"msnv":"POS001393","name":"Nguyễn Trung Tín","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"tinnt@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"LDV":"X","Ruya 12":"X","BH1":"X"},"id":"p29"},{"msnv":"POS001183","name":"Trương Nguyễn Hoàng Khánh","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"khanhtnh@ptsc.com.vn","disc":"EIT","role":"Elechtrical","tIMA":{},"tALL":{"Block B":"X"},"id":"p30"},{"msnv":"POS001361","name":"Phạm Huy Hiệu","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"hieuph01@ptsc.com.vn","disc":"EIT","role":"Elechtrical","tIMA":{},"tALL":{"LDV":"X","Block B":"X"},"id":"p31"},{"msnv":"POS001378","name":"Trần Đặng Gia Huy","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"huytdg@ptsc.com.vn","disc":"Process","role":"Process","tIMA":{},"tALL":{"TNHA":"X","MM1":"X"},"id":"p32"},{"msnv":"POS001079","name":"Nguyễn Văn Vũ Hưng","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"hungnvv@ptsc.com.vn","disc":"EIT","role":"Instrument & Telecom","tIMA":{},"tALL":{"TNHA":"X","Lower Zakum":"X","Ruya 12":"X"},"id":"p33"},{"msnv":"POS001386","name":"Trầm Phúc Vinh","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"vinhtp01@ptsc.com.vn","disc":"EIT","role":"Instrument & Telecom","tIMA":{},"tALL":{"STT2":"X","Ruya 12":"X"},"id":"p34"},{"msnv":"POS001412","name":"Phan Viết Sửu","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"suupv@ptsc.com.vn","disc":"EIT","role":"Electrical Leader","tIMA":{"IMA":"X"},"tALL":{"IMA":"X","TNHA":"X","Lower Zakum":"X"},"id":"p35"},{"msnv":"POS001417","name":"Nguyễn Thị Ngọc Linh","title":"Chuyên viên thiết kế đấu nối và chạy thử","email":"linhntn@ptsc.com.vn","disc":"Process","role":"Process","tIMA":{"IMA":"X"},"tALL":{"IMA":"X"},"id":"p36"},{"msnv":"POS100061","name":"Lê Nguyễn Hồng Phát","title":"Nhân viên Công nghệ","email":"phatlnh@ptsc.com.vn","disc":"Process","role":"Process","tIMA":{},"tALL":{"STT2":"X","Ruya 13":"X"},"id":"p37"},{"msnv":"POS001441","name":"Triệu Thành Tín","title":"Chuyên viên Thiết kế Đấu nối và Chạy thử","email":"tintt01@ptsc.com.vn","disc":"Mechanical","role":"Mechanical","tIMA":{},"tALL":{"Block B":"X","COMP4":"X"},"id":"p38"},{"msnv":"POS100065","name":"Nguyễn Hữu Cường","title":"Chuyên viên Thiết kế Đấu nối và Chạy thử","email":"cuongnh01@ptsc.com.vn","disc":"Mechanical","role":"Mechanical","tIMA":{"IMA":"X"},"tALL":{"Block B":"X","COMP4":"X"},"id":"p39"},{"msnv":"POS001451","name":"Dương Quang Khánh","title":"Chuyên viên Thiết kế Đấu nối và Chạy thử","email":"khanhdq@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{"IMA":"X"},"tALL":{"COMP4":"X"},"id":"p40"},{"msnv":"POS001447","name":"Nguyễn Tấn Trường","title":"chuyên viên thiết kế đấu nối và chạy thử","email":"truongnt01@pstc.com.vn","disc":"Process","role":"Process","tIMA":{"COMP4":"X"},"tALL":{"Lower Zakum":"X","COMP4":"X"},"id":"p41"},{"msnv":"POS100073","name":"Nguyễn Lê Hoàng","title":"Nhân viên thiết kế đấu nối và chạy thử","email":"hoangnl01@ptsc.com.vn","disc":"EIT","role":"EIT","tIMA":{},"tALL":{"Trainnee":"X"},"id":"p42"},{"msnv":"POS100085","name":"Lưu Quang Hải","title":"Nhân viên thiết kế thi công hàng hải","email":"TBA","disc":"EIT","role":"EIT","tIMA":{},"tALL":{"Trainnee":"X"},"id":"p43"},{"msnv":"POS001454","name":"Trần Ngọc Bảo Trâm","title":"Chuyên viên Thiết kế Đấu nối và Chạy thử","email":"TBA","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"IMA":"X","Lower Zakum":"X","COMP4":"X"},"id":"p44"},{"msnv":"POS100087","name":"Cao Tấn Hưng","title":"Nhân viên thiết kế đầu nối chạy thử","email":"TBA","disc":"Process","role":"Process","tIMA":{},"tALL":{"Trainnee":"X"},"id":"p45"},{"msnv":"POS100088","name":"Nguyễn Nhật Minh","title":"Nhân viên thiết kế thi công hành hải","email":"TBA","disc":"Mechanical","role":"Mechanical","tIMA":{},"tALL":{"Trainnee":"X"},"id":"p46"},{"msnv":"POS…..","name":"Lê Hoàng Đô","title":"","email":"dolh@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{"IMA":"X"},"tALL":{"TNHA":"X","COMP4":"X"},"id":"p47"},{"msnv":"NTP900003","name":"Trần Hoành","title":"","email":"hoanhtran@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"COMP4":"X","Ruya 12":"X","Ruya 13":"X"},"id":"p48"},{"msnv":"NTP900004","name":"Nguyễn Đăng Phú","title":"","email":"phund@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{},"tALL":{"Ruya 12":"X","Ruya 13":"X"},"id":"p49"},{"msnv":"NTP900040","name":"Nguyễn Văn Tự","title":"","email":"tunv01@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"COMP4":"X","Ruya 12":"X"},"id":"p50"},{"msnv":"NTP900174","name":"Lê Đình Lý","title":"","email":"lyld@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{},"tALL":{"Block B":"X"},"id":"p51"},{"msnv":"NTP900163","name":"Nghiêm Xuân Giang","title":"","email":"giangnx@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{},"tALL":{"Block B":"X","Ruya 12":"X"},"id":"p52"},{"msnv":"NTP900349","name":"Đinh Văn Trọng","title":"","email":"trongdv@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{"IMA":"X"},"tALL":{"TNHA":"X","COMP4":"X"},"id":"p53"},{"msnv":"NTP900006","name":"Nguyễn Trọng Hiếu","title":"","email":"hieunt01@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{},"tALL":{},"id":"p54"},{"msnv":"NTP900168","name":"Lê Thị Ngọc Mỹ","title":"","email":"myltn@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{},"tALL":{"TNHA":"X","Block B":"X","COMP4":"X"},"id":"p55"},{"msnv":"NTP900157","name":"Võ Khắc Tri","title":"","email":"trivk@ptsc.com.vn","disc":"Structure","role":"Structure","tIMA":{},"tALL":{"LDV":"X","Ruya 12":"X"},"id":"p56"},{"msnv":"NTP900165","name":"Vũ Thái Nguyên","title":"","email":"nguyenvt@ptsc.com.vn","disc":"Structure","role":"Lifting","tIMA":{},"tALL":{"COMP4":"X","Ruya 12":"X","Ruya 13":"X"},"id":"p57"},{"msnv":"NTP900166","name":"Trịnh Đình Minh","title":"","email":"minhtd01@ptsc.com.vn","disc":"Piping","role":"Piping","tIMA":{},"tALL":{"COMP4":"X","Ruya 12":"X","Ruya 13":"X"},"id":"p58"},{"msnv":"NTP….","name":"Lê Đức Minh","title":"","email":"","disc":"Structure","role":"Lifting","tIMA":{"IMA":"X"},"tALL":{"IMA":"X","Block B":"X"},"id":"p59"}];
+
+const DEFAULT_DISCIPLINES = ['Process','Piping','Structural / Civil','Mechanical','Electrical','Instrument & Telecom','Lifting','Pipeline','Naval Architect','PMT','QA/QC & Document Control'];
+const DISC_TITLE_FAMILIES = {
+  'PMT': ['Lead Project Engineer','Senior Project Engineer','Junior Project Engineer','Fresher','Lead Project Coordinator','Senior Project Coordinator','Junior Project Coordinator'],
+  'QA/QC & Document Control': ['Senior QA/QC Engineer','Junior QA/QC Engineer','Fresher','Lead DCC','Document Controller'],
+  '3D Modeling': ['Lead 3D Modeler','Senior 3D Modeler','Junior 3D Modeler','Fresher'],
+};
+function discTitleOptions(disc){
+  if(!disc) return [];
+  if(DISC_TITLE_FAMILIES[disc]) return DISC_TITLE_FAMILIES[disc].slice();
+  return ['Lead '+disc+' Engineer','Senior '+disc+' Engineer','Junior '+disc+' Engineer','Fresher'];
+}
+function titleAbbrev(title){
+  if(!title) return '';
+  if(/^lead\b/i.test(title)) return 'Leader';
+  if(/^senior\b/i.test(title)) return 'Sr';
+  if(/^junior\b/i.test(title)) return 'Jr';
+  return title;
+}
+function migratePerson(p){
+  const oldDisc = p.disc||'';
+  const oldRole = String(p.role||'').toLowerCase();
+  const oldTitleText = String(p.title||'').toLowerCase();
+  let disc = oldDisc;
+  if(oldDisc==='Structure') disc = /lifting|scaffold/.test(oldRole) ? 'Lifting' : 'Structural / Civil';
+  else if(oldDisc==='EIT') disc = /elech|electr/.test(oldRole) ? 'Electrical' : 'Instrument & Telecom';
+  else if(oldDisc==='PipeLine') disc = 'Pipeline';
+  const fresh = isFresh(p);
+  const leaderish = /\blead\b|leader|tổ trưởng|tổ phó/i.test(oldRole+' '+oldTitleText);
+  const seniorish = /cấp cao|senior/i.test(oldTitleText);
+  let title='';
+  if(disc){
+    if(DISC_TITLE_FAMILIES[disc]){
+      if(disc==='PMT') title = fresh?'Fresher':(leaderish?'Lead Project Engineer':(seniorish?'Senior Project Engineer':'Junior Project Engineer'));
+      else if(disc==='QA/QC & Document Control') title = fresh?'Fresher':(leaderish?'Lead DCC':(seniorish?'Senior QA/QC Engineer':'Junior QA/QC Engineer'));
+      else title = fresh?'Fresher':(leaderish?'Lead 3D Modeler':(seniorish?'Senior 3D Modeler':'Junior 3D Modeler'));
+    }else{
+      title = fresh?'Fresher':(leaderish?('Lead '+disc+' Engineer'):(seniorish?('Senior '+disc+' Engineer'):('Junior '+disc+' Engineer')));
+    }
+  }
+  p.disc=disc; p.title=title; delete p.role;
+  return p;
+}
+function defaultState(){
+  return {
+    chartTitle:'DETAILED ENGINEERING ORGANIZATION CHART',
+    chartSub:'PTSC OFFSHORE SERVICES (POS) · IMA PROJECT',
+    titleColor:'#1B2C5C',
+    bgColor:'#FFFFFF',
+    manager:{title:'Engineering Manager', name:'Dương Văn Lưu'},
+    manager2:{title:'Deputy Engineering Manager', name:'Lê Văn Dư'},
+    showLegend:true,
+    legendDE:'Detailed Engineering',
+    legendCE:'Construction Engineering',
+    deColor:'#D91F24',
+    ceColor:'#1a2333',
+    people: cleanPeople(JSON.parse(JSON.stringify(SEED_PEOPLE)).map(migratePerson)),
+    disciplines: DEFAULT_DISCIPLINES.slice(),
+    discOrder: {},
+    _schemaV2: true,
+    schedules: defaultSchedules(),
+    blocks:[
+      mkBlock('Process','Process Engineering Team','Process','#1B2C5C'),
+      mkBlock('Piping','Piping Engineering Team','Piping','#1B2C5C'),
+      mkBlock('Structural / Civil','Structural Engineering Team','Structural / Civil','#1B2C5C'),
+      mkBlock('Mechanical','Mechanical Engineering Team','Mechanical','#1B2C5C'),
+      mkBlock('Electrical','Electrical Engineering Team','Electrical','#1B2C5C'),
+      mkBlock('Instrument & Telecom','Instrument & Telecom Team','Instrument & Telecom','#1B2C5C'),
+      mkBlock('Lifting','Lifting Engineering Team','Lifting','#24408E'),
+      mkBlock('Pipeline','Pipeline Engineering Team','Pipeline','#24408E'),
+      mkBlock('Naval Architect','Naval Architect Team','Naval Architect','#24408E'),
+    ],
+    sideBlocks:[
+      mkBlock('QA/QC & Document Control','QA/QC & Document Control','QA/QC & Document Control','#1B2C5C'),
+      mkBlock('PMT','PMT','PMT','#1B2C5C'),
+    ],
+    boundaries:[
+      {id:uid(), label:'MAIN DISCIPLINES – DETAILED ENGINEERING', from:0, to:5, fill:'#E9EEF9', border:'#1B2C5C', labelColor:'#1B2C5C'},
+      {id:uid(), label:'SIDE DISCIPLINES – T&I / CONSTRUCTION', from:6, to:8, fill:'#FDEBEC', border:'#D91F24', labelColor:'#D91F24'},
+    ],
+    sideBoundary:{show:true, label:'SUPPORT TEAMS – PMT / QA-QC & DOCUMENT CONTROL', fill:'#EDF2FB', border:'#24408E', labelColor:'#24408E'},
+    chart1:{
+      title:'KHẢ NĂNG HUY ĐỘNG NHÂN SỰ CHO DỰ ÁN IMA',
+      xTitle:'Nhóm nhân sự', yTitle:'Số nhân sự (người)',
+      rotate:30, showValues:true, showLegend:true,
+      colorIdeal:'#2E9E5B', colorPrio:'#24408E', colorBusy:'#D91F24',
+      legendIdeal:'Detailed Engineering', legendPrio:'Ưu tiên IMA từ dự án CE', legendBusy:'Không thể làm IMA (bận dự án CE)',
+    },
+    chart2:{
+      title:'PHÂN BỔ NGUỒN LỰC ENGINEERING TEAM THEO DỰ ÁN',
+      mode:'effort', showValues:true,
+      note:'% effort: mỗi nhân sự chia đều 100% cho các dự án đang được tick trong DS_TK_ALL',
+    },
+    filters:{ima:{}, all:{}},   // {colKey:{selected:Set-as-array}|null}
+    sort:{ima:null, all:null},
+  };
+}
+function mkBlock(name, teamTitle, disc, color){
+  return {id:uid(), name, teamTitle, disc,
+          color, headText:'#FFFFFF', memberColorMode:'auto', memberColor:'#1a2333', extra:[]};
+}
+function allBlocks(){ return (S.blocks||[]).concat(S.sideBlocks||[]); }
+let _uidc = 0;
+function uid(){ return 'u'+(Date.now().toString(36))+(_uidc++); }
+
+function cleanPeople(arr){
+  // Revised logic: remove old free-text notes such as "Chuyển T&I" from project ticks.
+  arr.forEach(p=>{
+    p.tIMA=p.tIMA||{}; p.tALL=p.tALL||{};
+    ['tIMA','tALL'].forEach(tf=>{
+      Object.keys(p[tf]).forEach(k=>{ if(!isTick(p[tf][k])) delete p[tf][k]; });
+    });
+  });
+  return arr;
+}
+function normalizeState(d){
+  d=d||defaultState();
+  d.disciplines = d.disciplines && d.disciplines.length ? d.disciplines : DEFAULT_DISCIPLINES.slice();
+  d.discOrder = d.discOrder || {};
+  d.sideBlocks = d.sideBlocks || [mkBlock('QA/QC & Document Control','QA/QC & Document Control','QA/QC & Document Control','#1B2C5C'), mkBlock('PMT','PMT','PMT','#1B2C5C')];
+  d.sideBoundary = d.sideBoundary || {show:true, label:'SUPPORT TEAMS – PMT / QA-QC & DOCUMENT CONTROL', fill:'#EDF2FB', border:'#24408E', labelColor:'#24408E'};
+  if(!d._schemaV2){
+    d.people = (d.people||[]).map(migratePerson);
+    d._schemaV2 = true;
+  }
+  d.people=cleanPeople(d.people||[]);
+  d.manager=d.manager||{};
+  if(!d.manager.name || /^TBA$/i.test(String(d.manager.name))) d.manager.name='Dương Văn Lưu';
+  if(!d.manager.title || /EPIC Engineering Manager/i.test(String(d.manager.title))) d.manager.title='Engineering Manager';
+  d.manager2=d.manager2||{};
+  if(!d.manager2.name || /^TBA$/i.test(String(d.manager2.name))) d.manager2.name='Lê Văn Dư';
+  if(!d.manager2.title || /EPIC Engineering Manager/i.test(String(d.manager2.title))) d.manager2.title='Deputy Engineering Manager';
+  d.legendDE=d.legendDE||'Detailed Engineering';
+  if(/sẵn sàng IMA/i.test(d.legendDE)) d.legendDE='Detailed Engineering';
+  d.legendCE=d.legendCE||'Construction Engineering';
+  d.mhAssign=d.mhAssign||{};
+  d.mhCfg=d.mhCfg||{};
+  d.schedules=d.schedules||defaultSchedules();
+  d.schedules.ima=d.schedules.ima||defaultSchedules().ima;
+  d.schedules.mm3=d.schedules.mm3||defaultSchedules().mm3;
+  return d;
+}
+function isLeadPerson(p){ return /^lead\b/i.test((p&&p.title)||''); }
+function isFresh(p){ return isTick((p.tALL||{}).Trainnee)||isTick((p.tALL||{}).Trainee)||isTick((p.tIMA||{}).Trainnee)||isTick((p.tIMA||{}).Trainee); }
+function uiProjectLabel(pj){ return pj==='Trainnee' ? 'Trainee' : pj; }
+
+/* ============ STATE ============ */
+/* Khởi động: ưu tiên dữ liệu nhúng trong file (từ nút Export HTML), nếu không có thì dùng dữ liệu gốc */
+function readEmbeddedState(){
+  try{
+    const el=document.getElementById('embeddedData');
+    if(!el) return null;
+    const t=(el.textContent||'').trim();
+    if(!t || t==='null') return null;
+    return JSON.parse(t);
+  }catch(e){ console.warn('Embedded data không đọc được:', e); return null; }
+}
+let S = normalizeState(readEmbeddedState() || defaultState());
+let sel = null;          // {type:'block'|'member'|'boundary'|'title'|'manager', id}
+let openAcc = {gen:true, blocks:false, side:false, bounds:false, legend:false, member:false, exp:false};
+
+/* ============ HELPERS ============ */
+const $ = (q,el)=> (el||document).querySelector(q);
+const $$ = (q,el)=> Array.from((el||document).querySelectorAll(q));
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200); }
+function isTick(v){ return v==='X'||v==='x'||v==='✓'; }
+function tickHTML(v){
+  if(v==null||v==='') return '';
+  if(v==='✓') return '<span class="tk-new">✓</span>';
+  if(isTick(v)) return '<span class="tk-old">X</span>';
+  return '';
+}
+function otherCE(p){ // number of CE projects ticked in DS_TK_ALL, excluding IMA & status cols
+  let n=0;
+  for(const k of PROJECTS_ALL){ if(k==='IMA'||NON_PROJECT_COLS.includes(k)) continue; if(isTick(p.tALL[k])) n++; }
+  return n;
+}
+function isDE(p){ return isTick(p.tIMA['IMA']); }          // capable of IMA ideally → red name
+function canPrio(p){ return isTick(p.tALL['IMA']); }        // can prioritize IMA
+/* TBA placeholder: hiện trên sơ đồ nhưng KHÔNG tính vào tổng nhân sự / thống kê */
+function isTBA(x){ const n = normName(typeof x==='string'? x : (x&&x.name)); return n==='tba' || /^tba[\s\d.\-–(]/.test(n); }
+function realPeople(){ return (S.people||[]).filter(p=>!isTBA(p)); }
+
+/* block ↔ person matching: purely by Discipline now (Role field removed) */
+function blockMatches(b,p){ return !!(b.disc) && p.disc===b.disc; }
+function defaultMemberSort(list){
+  return list.slice().sort((a,b)=> (isLeadPerson(b)-isLeadPerson(a)) || (isDE(b)-isDE(a)) || a.name.localeCompare(b.name,'vi'));
+}
+function orderedMembers(list, discName){
+  const order = (S.discOrder||{})[discName];
+  if(!order || !order.length) return defaultMemberSort(list);
+  const byId={}; list.forEach(p=>byId[p.id]=p);
+  const ordered=[]; const seen=new Set();
+  order.forEach(id=>{ const p=byId[id]; if(p && !seen.has(id)){ ordered.push(p); seen.add(id); } });
+  const rest = defaultMemberSort(list.filter(p=>!seen.has(p.id)));
+  return ordered.concat(rest);
+}
+function moveMember(personId,dir){
+  const p=S.people.find(x=>x.id===personId); if(!p || !p.disc) return;
+  const block = allBlocks().find(b=>b.disc===p.disc); if(!block) return;
+  const asg = assignPeople(); const list = asg[block.id]||[];
+  const ids = list.map(x=>x.id);
+  const i = ids.indexOf(personId); if(i<0) return;
+  const j = i+dir; if(j<0||j>=ids.length) return;
+  const t=ids[i]; ids[i]=ids[j]; ids[j]=t;
+  S.discOrder = S.discOrder||{}; S.discOrder[p.disc]=ids;
+  renderOrg();
+}
+function assignPeople(){
+  const map = {}; const blocks = allBlocks();
+  blocks.forEach(b=> map[b.id]=[]);
+  for(const p of S.people){
+    if(isChartManagerPerson(p)) continue; // manager/deputy manager are shown only in the top management boxes
+    const b = blocks.find(bb=>blockMatches(bb,p));
+    if(b) map[b.id].push(p);
+  }
+  blocks.forEach(b=>{ map[b.id]=orderedMembers(map[b.id], b.disc); });
+  return map;
+}
+function normName(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim(); }
+function isChartManagerPerson(p){
+  const names=[S.manager&&S.manager.name, S.manager2&&S.manager2.name].filter(Boolean).map(normName);
+  return names.includes(normName(p&&p.name));
+}
+
+/* text measurement / wrapping for SVG */
+const _mctx = document.createElement('canvas').getContext('2d');
+function tw(text, font){ _mctx.font=font; return _mctx.measureText(text).width; }
+function wrap(text, maxW, font){
+  const words=String(text).split(/\s+/); const lines=[]; let cur='';
+  for(const w of words){
+    const t = cur? cur+' '+w : w;
+    if(tw(t,font)<=maxW || !cur) cur=t; else {lines.push(cur); cur=w;}
+  }
+  if(cur) lines.push(cur);
+  return lines;
+}
+
+/* ============ PERSIST / IO ============ */
+function saveJSON(){
+  const blob = new Blob([JSON.stringify(S,null,1)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='IMA_org_data_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+  URL.revokeObjectURL(a.href); toast('Đã tải file dữ liệu JSON – giữ file này để mở lại lần sau');
+}
+function exportHTML(){
+  // Xuất chính trang này thành file HTML độc lập, nhúng sẵn toàn bộ dữ liệu hiện tại
+  const data = JSON.stringify(S).replace(/<\//g,'<\\/');
+  let doc = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  doc = doc.replace(/(<script id="embeddedData" type="application\/json">)[\s\S]*?(<\/script>)/, function(m,a,b){ return a + data + b; });
+  const blob=new Blob([doc],{type:'text/html'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='IMA_Org_Chart_Tool_'+new Date().toISOString().slice(0,10)+'.html'; a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Đã xuất file HTML kèm dữ liệu — mở file là thấy ngay dữ liệu hiện tại, không cần import');
+}
+function loadJSON(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=e=>{ try{ const d=JSON.parse(e.target.result); if(!d.people||!d.blocks) throw 0; S=normalizeState(d); sel=null; renderAll(); toast('Đã nạp dữ liệu từ file'); }catch(_){ toast('File không hợp lệ'); } inp.value=''; };
+  r.readAsText(f);
+}
+function resetData(){
+  if(!confirm('Khôi phục toàn bộ về dữ liệu gốc từ file Excel? Mọi chỉnh sửa chưa lưu sẽ mất.')) return;
+  S=defaultState(); sel=null; renderAll(); toast('Đã khôi phục dữ liệu gốc');
+}
+window.addEventListener('beforeunload', e=>{ e.preventDefault(); e.returnValue=''; });
+
+/* ============ MAIN / SUB VIEW SWITCH ============ */
+let currentMain='orgsuite';
+let currentSub='org';
+function showMain(v){
+  currentMain=v;
+  $$('.mainview').forEach(x=>x.classList.remove('active'));
+  $('#main-'+v).classList.add('active');
+  $$('.main-tabs button').forEach(b=>b.classList.toggle('active', b.dataset.main===v));
+  if(v==='orgsuite') showSub(currentSub||'org');
+  if(v==='manhour') renderManhour();
+  if(v==='scheduler') renderSchedule();
+}
+function showSub(v){
+  currentSub=v;
+  $$('.view').forEach(x=>x.classList.remove('active'));
+  $('#view-'+v).classList.add('active');
+  $$('.subtabs button').forEach(b=>b.classList.toggle('active', b.dataset.v===v));
+  if(v==='org') renderOrg();
+  if(v==='ima') renderTable('ima');
+  if(v==='all') renderTable('all');
+  if(v==='titles') renderTitleStats();
+  if(v==='fresh') renderFresh();
+  if(v==='dash') renderDash();
+}
+function showView(v){ showMain('orgsuite'); showSub(v); }
+function renderAll(){
+  renderOrg(); renderTable('ima'); renderTable('all'); renderTitleStats(); renderFresh(); renderDash(); renderManhour();
+  if(typeof renderSchedule==='function') renderSchedule();
+}
+
+/* ================= ORG CHART (SVG) ================= */
+const L = { colW:180, gap:18, margin:28, topPad:22 };
+
+function buildColData(b, asg){
+  const membersAll = (asg[b.id]||[]).concat();
+  const extra = (b.extra||[]).map(e=>({id:e.id, name:e.name, title:e.title||'', manual:true}));
+  const headLines = wrap(b.name, L.colW-16, 'bold 12.5px Arial');
+  const headH = Math.max(38, headLines.length*15+14);
+  const teamLines = wrap(b.teamTitle||'', L.colW-16, 'bold 11.5px Arial');
+  const teamBarH = teamLines.length*14 + 12;
+  const list = membersAll.map(p=>({id:p.id, name:p.name, title:p.title, de:isDE(p)})).concat(extra);
+  const listH = Math.max(26, list.length*19 + 12);
+  const totalH = headH+8+teamBarH+listH;
+  return {b, headLines, headH, teamLines, teamBarH, list, listH, totalH, count:list.filter(m=>!isTBA(m.name)).length};
+}
+
+function computeOrgLayout(){
+  const asg = assignPeople();
+  const sideBlocksArr = S.sideBlocks||[];
+  const sideColsRaw = sideBlocksArr.map(b=>buildColData(b, asg));
+  const sideAreaW = sideColsRaw.length ? sideColsRaw.length*L.colW + Math.max(0,sideColsRaw.length-1)*L.gap : 0;
+
+  const n = S.blocks.length;
+  const mainW = n*L.colW + Math.max(0,n-1)*L.gap;
+  const mgrW=310, mgrGap=10, mgrH=54;
+  const sideGapX = 60;   // khoảng cách giữa nhóm side (QA/QC, PMT) và khối manager
+
+  // Main columns bắt đầu từ lề trái; khối manager được canh GIỮA so với dải discipline bên dưới
+  let mainOffsetX = L.margin;
+  let mgrCX = mainOffsetX + mainW/2;
+  let sideX0 = mgrCX - mgrW/2 - sideGapX - sideAreaW;
+  if(sideColsRaw.length){
+    const minSideX = L.margin + 14;
+    if(sideX0 < minSideX){ const shift = minSideX - sideX0; mainOffsetX += shift; mgrCX += shift; sideX0 = minSideX; }
+  }
+  const W = mainOffsetX + mainW + L.margin;
+
+  // title
+  let y = L.topPad + 8;
+  const titleLines = wrap(S.chartTitle||' ', W-160, 'bold 24px Arial');
+  const titleH = titleLines.length*30;
+  const subH = S.chartSub? 20 : 4;
+  y += titleH + subH + 46;   // chừa chỗ cho nhãn boundary của nhóm side phía trên
+
+  // managers - stacked vertically: Engineering Manager on top of Deputy Engineering Manager
+  const mgrY=y;
+  const managers=[S.manager||{title:'Engineering Manager',name:'Dương Văn Lưu'}, S.manager2||{title:'Deputy Engineering Manager',name:'Lê Văn Dư'}];
+  const mgrs=managers.map((m,i)=>({x:mgrCX-mgrW/2, y:mgrY+i*(mgrH+mgrGap), w:mgrW, h:mgrH, title:m.title||'', name:m.name||'TBA', idx:i}));
+  const mgr = {x: mgrCX-mgrW/2, y:mgrY, w:mgrW, h:mgrH}; // backward-compatible center reference
+  y += mgrs.length*mgrH + Math.max(0,mgrs.length-1)*mgrGap;   // bottom of manager stack
+
+  // side branch columns (QA/QC & Document Control, PMT) — bên trái, sát khối manager, đỉnh ngang Engineering Manager
+  const sideCols = sideColsRaw.map((cd,i)=>{
+    cd.x = sideX0 + i*(L.colW+L.gap);
+    cd.y = mgrY;
+    return cd;
+  });
+  const sideColsBottom = sideCols.length ? Math.max(...sideCols.map(c=>c.y+c.totalH)) : 0;
+  const sideBound = sideCols.length ? {x1:sideX0-12, y1:mgrY-34, x2:sideX0+sideAreaW+12, y2:sideColsBottom+18} : null;
+
+  // Đường bus nằm dưới đáy nhóm side ⇒ chart tự giãn chiều cao khi thêm người vào QA/QC hoặc PMT
+  const busY = Math.max(y + 42, sideBound ? sideBound.y2 + 32 : 0);
+  const boundLabelH = 26;
+  const colTop = busY + 40 + boundLabelH;   // khoảng thở rộng giữa Deputy Manager và các discipline
+
+  // main columns
+  const cols = S.blocks.map((b,i)=>{
+    const cd = buildColData(b, asg);
+    cd.x = mainOffsetX + i*(L.colW+L.gap);
+    return cd;
+  });
+  const colMaxH = Math.max(...cols.map(c=>c.totalH), 100);
+  const colBottom = colTop + colMaxH;
+
+  const sideBottom = sideCols.length ? sideColsBottom : colTop;
+
+  const legendY = Math.max(colBottom, sideBottom) + 34;
+  const H = legendY + (S.showLegend? 46: 10) + L.topPad;
+  return {W,H,titleLines,titleH,mgr,mgrs,mgrY,busY,colTop,colBottom,cols,sideCols,sideBound,legendY,asg};
+}
+
+function svgText(x,y,txt,attrs){ return '<text x="'+x+'" y="'+y+'" '+(attrs||'')+'>'+esc(txt)+'</text>'; }
+
+function pushColumnSVG(s, c, opts){
+  const b=c.b; const topY = c.y!=null? c.y : opts.colTop;
+  let y=topY;
+  const selB = !opts.forExport && sel && sel.type==='block' && sel.id===b.id;
+  s.push('<g class="clickable" data-sel="block" data-id="'+b.id+'">');
+  s.push('<rect x="'+c.x+'" y="'+y+'" width="'+L.colW+'" height="'+c.headH+'" rx="5" fill="'+b.color+'"/>');
+  let hy=y+c.headH/2-(c.headLines.length-1)*7.5+4;
+  c.headLines.forEach(ln=>{ s.push(svgText(c.x+L.colW/2, hy, ln, 'text-anchor="middle" font-size="12.5" font-weight="bold" fill="'+b.headText+'"')); hy+=15; });
+  s.push('<circle cx="'+(c.x+L.colW-13)+'" cy="'+(y+13)+'" r="10" fill="#FFFFFF" opacity="0.92"/>');
+  s.push(svgText(c.x+L.colW-13, y+17, String(c.count), 'text-anchor="middle" font-size="10.5" font-weight="bold" fill="'+b.color+'"'));
+  y+=c.headH+8;
+  s.push('<rect x="'+c.x+'" y="'+y+'" width="'+L.colW+'" height="'+(c.teamBarH+c.listH)+'" rx="5" fill="#FFFFFF" stroke="'+b.color+'" stroke-width="1.4"/>');
+  s.push('<path d="M '+c.x+' '+(y+5)+' q 0 -5 5 -5 h '+(L.colW-10)+' q 5 0 5 5 v '+(c.teamBarH-5)+' h -'+L.colW+' z" fill="'+b.color+'" opacity="0.14"/>');
+  let ty2=y+14;
+  c.teamLines.forEach(ln=>{ s.push(svgText(c.x+L.colW/2, ty2, ln, 'text-anchor="middle" font-size="11" font-weight="bold" fill="'+b.color+'"')); ty2+=14; });
+  s.push('</g>');
+  // unified numbered member list (Name - abbrev-title)
+  let my=y+c.teamBarH+15;
+  c.list.forEach((m,idx)=>{
+    const tba = isTBA(m.name);
+    let fill;
+    if(b.memberColorMode==='fixed') fill=b.memberColor;
+    else if(tba) fill = m.de? S.deColor : S.ceColor;   // TBA: màu DE/CE theo tick IMA, giống nhân sự khác
+    else fill = m.manual? '#6B7488' : (m.de? S.deColor : S.ceColor);
+    const selM = !opts.forExport && sel && sel.type==='member' && sel.id===m.id;
+    const abbrev = titleAbbrev(m.title||'');
+    const label = (idx+1)+'. '+m.name+(abbrev? ' - '+abbrev : '');
+    s.push('<g class="clickable" data-sel="member" data-id="'+m.id+'" data-block="'+b.id+'" data-manual="'+(m.manual?1:0)+'">');
+    if(selM) s.push('<rect x="'+(c.x+3)+'" y="'+(my-12)+'" width="'+(L.colW-6)+'" height="17" rx="3" fill="#FFF3E8"/>');
+    if(m.de && !m.manual && b.memberColorMode!=='fixed') s.push('<rect x="'+(c.x+6)+'" y="'+(my-9)+'" width="4" height="10" rx="1" fill="'+S.deColor+'"/>');
+    s.push(svgText(c.x+14, my, label, 'font-size="11" fill="'+fill+'"'+(tba?' font-weight="bold" font-style="italic"':(!m.manual?' font-weight="bold"':''))));
+    s.push('</g>');
+    my+=19;
+  });
+  // add-member hotspot (edit mode only)
+  if(!opts.forExport){
+    s.push('<g class="clickable" data-sel="addmem" data-id="'+b.id+'"><rect x="'+(c.x+4)+'" y="'+(topY+c.totalH-2)+'" width="'+(L.colW-8)+'" height="16" rx="3" fill="#F4F6FB"/>'+svgText(c.x+L.colW/2, topY+c.totalH+10, '＋ thêm thành viên', 'text-anchor="middle" font-size="10" fill="#9AA2B4"')+'</g>');
+  }
+  if(selB) s.push('<rect x="'+(c.x-4)+'" y="'+(topY-4)+'" width="'+(L.colW+8)+'" height="'+(c.totalH+8)+'" rx="7" class="selected-outline"/>');
+}
+
+function buildOrgSVG(forExport){
+  const g = computeOrgLayout();
+  const s=[];
+  s.push('<svg xmlns="http://www.w3.org/2000/svg" class="orgsvg" width="'+g.W+'" height="'+g.H+'" viewBox="0 0 '+g.W+' '+g.H+'" font-family="Arial, sans-serif">');
+  s.push('<rect x="0" y="0" width="'+g.W+'" height="'+g.H+'" fill="'+S.bgColor+'"/>');
+  // top red accent line (PTSC style)
+  s.push('<rect x="0" y="0" width="'+g.W+'" height="6" fill="'+S.deColor+'"/>');
+  s.push('<rect x="0" y="6" width="'+g.W+'" height="2" fill="'+S.titleColor+'"/>');
+
+  // title (clickable)
+  let ty = L.topPad + 26;
+  const tGroup=['<g class="clickable" data-sel="title">'];
+  g.titleLines.forEach(ln=>{ tGroup.push(svgText(g.W/2, ty, ln, 'text-anchor="middle" font-size="24" font-weight="bold" fill="'+S.titleColor+'" letter-spacing="1"')); ty+=30; });
+  if(S.chartSub) tGroup.push(svgText(g.W/2, ty, S.chartSub, 'text-anchor="middle" font-size="12" fill="#6B7488" letter-spacing="2"'));
+  tGroup.push('</g>'); s.push(tGroup.join(''));
+  if(!forExport && sel && sel.type==='title') s.push('<rect x="'+(g.W/2-260)+'" y="'+(L.topPad+4)+'" width="520" height="'+(g.titleH+(S.chartSub?24:6))+'" rx="4" class="selected-outline"/>');
+
+  // boundaries (behind columns)
+  for(const bd of S.boundaries){
+    const f=Math.max(0,Math.min(bd.from,S.blocks.length-1)), t=Math.max(f,Math.min(bd.to,S.blocks.length-1));
+    const x1=g.cols[f].x-9, x2=g.cols[t].x+L.colW+9;
+    const y1=g.colTop-30, y2=g.colBottom+12;
+    s.push('<g class="clickable" data-sel="boundary" data-id="'+bd.id+'">');
+    s.push('<rect x="'+x1+'" y="'+y1+'" width="'+(x2-x1)+'" height="'+(y2-y1)+'" rx="10" fill="'+bd.fill+'" stroke="'+bd.border+'" stroke-width="1.6" stroke-dasharray="7 4"/>');
+    s.push(svgText(x1+12, y1+19, bd.label, 'font-size="12" font-weight="bold" fill="'+bd.labelColor+'" letter-spacing="1"'));
+    s.push('</g>');
+    if(!forExport && sel && sel.type==='boundary' && sel.id===bd.id) s.push('<rect x="'+(x1-3)+'" y="'+(y1-3)+'" width="'+(x2-x1+6)+'" height="'+(y2-y1+6)+'" rx="12" class="selected-outline"/>');
+  }
+
+  // boundary cho nhóm phía trên (QA/QC & Document Control, PMT)
+  const sbCfg = S.sideBoundary||{};
+  if(g.sideBound && sbCfg.show!==false){
+    const sb=g.sideBound;
+    s.push('<rect x="'+sb.x1+'" y="'+sb.y1+'" width="'+(sb.x2-sb.x1)+'" height="'+(sb.y2-sb.y1)+'" rx="10" fill="'+(sbCfg.fill||'#EDF2FB')+'" stroke="'+(sbCfg.border||'#24408E')+'" stroke-width="1.6" stroke-dasharray="7 4"/>');
+    s.push(svgText(sb.x1+12, sb.y1+19, sbCfg.label||'SUPPORT TEAMS – PMT / QA-QC & DC', 'font-size="12" font-weight="bold" fill="'+(sbCfg.labelColor||'#24408E')+'" letter-spacing="1"'));
+  }
+
+  // manager boxes (white blocks, title + name like discipline leads)
+  (g.mgrs||[g.mgr]).forEach(m=>{
+    const mp=(S.people||[]).find(p=>normName(p.name)===normName(m.name));
+    const mgrDE=mp ? isDE(mp) : false;
+    const nameFill=mgrDE ? S.deColor : S.ceColor;
+    s.push('<g class="clickable" data-sel="manager" data-id="'+m.idx+'">');
+    s.push('<rect x="'+m.x+'" y="'+m.y+'" width="'+m.w+'" height="'+m.h+'" rx="6" fill="#FFFFFF" stroke="'+S.titleColor+'" stroke-width="1.6"/>');
+    s.push(svgText(m.x+m.w/2, m.y+22, m.title, 'text-anchor="middle" font-size="13" font-weight="bold" fill="'+S.titleColor+'"'));
+    if(mgrDE) s.push('<rect x="'+(m.x+18)+'" y="'+(m.y+34)+'" width="4" height="12" rx="1.5" fill="'+S.deColor+'"/>');
+    s.push(svgText(m.x+m.w/2, m.y+43, m.name, 'text-anchor="middle" font-size="12.5" font-weight="bold" fill="'+nameFill+'"'));
+    s.push('</g>');
+    if(!forExport && sel && sel.type==='manager' && String(sel.id||'0')===String(m.idx)) s.push('<rect x="'+(m.x-4)+'" y="'+(m.y-4)+'" width="'+(m.w+8)+'" height="'+(m.h+8)+'" rx="8" class="selected-outline"/>');
+  });
+
+  // connectors
+  const c1x=g.cols[0].x+L.colW/2, c2x=g.cols[g.cols.length-1].x+L.colW/2;
+  const joinY=g.busY-12;
+  if(g.mgrs && g.mgrs.length>1){
+    for(let i=0;i<g.mgrs.length-1;i++){
+      const a=g.mgrs[i], b=g.mgrs[i+1];
+      const cx=a.x+a.w/2;
+      s.push('<path d="M '+cx+' '+(a.y+a.h)+' V '+b.y+'" stroke="#9AA2B4" stroke-width="1.6" fill="none"/>');
+    }
+    const last=g.mgrs[g.mgrs.length-1];
+    s.push('<path d="M '+(last.x+last.w/2)+' '+(last.y+last.h)+' V '+g.busY+'" stroke="#9AA2B4" stroke-width="1.6" fill="none"/>');
+  }else{
+    s.push('<path d="M '+(g.mgr.x+g.mgr.w/2)+' '+(g.mgr.y+g.mgr.h)+' V '+g.busY+'" stroke="#9AA2B4" stroke-width="1.6" fill="none"/>');
+  }
+  s.push('<path d="M '+c1x+' '+g.busY+' H '+c2x+'" stroke="#9AA2B4" stroke-width="1.6" fill="none"/>');
+  for(const c of g.cols) s.push('<path d="M '+(c.x+L.colW/2)+' '+g.busY+' V '+(g.colTop)+'" stroke="#9AA2B4" stroke-width="1.6" fill="none"/>');
+
+  // side branch connector (PMT / QA-QC & Document Control – nhóm bên trái khối manager)
+  if(g.sideCols && g.sideCols.length){
+    const branchY = (g.mgrs && g.mgrs.length>1) ? (g.mgrs[0].y+g.mgrs[0].h+g.mgrs[1].y)/2 : (g.mgrY+g.mgr.h/2);
+    const leftX = g.mgr.x;
+    const showSB = g.sideBound && (S.sideBoundary||{}).show!==false;
+    const rightEdge = showSB ? g.sideBound.x2 : (g.sideCols[g.sideCols.length-1].x + L.colW);
+    s.push('<path d="M '+leftX+' '+branchY+' H '+rightEdge+'" stroke="#9AA2B4" stroke-width="1.6" fill="none"/>');
+  }
+
+  // columns (main discipline row + left side branch)
+  for(const c of g.cols) pushColumnSVG(s, c, {forExport, colTop:g.colTop});
+  for(const c of g.sideCols) pushColumnSVG(s, c, {forExport, colTop:g.colTop});
+
+  // legend
+  if(S.showLegend){
+    let lx=L.margin, ly=g.legendY+8;
+    s.push('<g class="clickable" data-sel="legend">');
+    s.push('<rect x="'+lx+'" y="'+ly+'" width="14" height="14" rx="3" fill="'+S.deColor+'"/>');
+    s.push(svgText(lx+21, ly+11.5, S.legendDE, 'font-size="12" fill="#1a2333" font-weight="bold"'));
+    const w1 = tw(S.legendDE,'bold 12px Arial')+60;
+    s.push('<rect x="'+(lx+w1)+'" y="'+ly+'" width="14" height="14" rx="3" fill="'+S.ceColor+'"/>');
+    s.push(svgText(lx+w1+21, ly+11.5, S.legendCE, 'font-size="12" fill="#1a2333" font-weight="bold"'));
+    s.push('</g>');
+    // footer stamp
+    const rp=realPeople(); const total=rp.length, de=rp.filter(isDE).length; const tbaN=S.people.length-total;
+    s.push(svgText(g.W-L.margin, ly+11.5, 'Tổng: '+total+' nhân sự'+(tbaN? ' (+'+tbaN+' vị trí TBA)':'')+' · Detailed Engineering: '+de, 'text-anchor="end" font-size="11.5" fill="#6B7488"'));
+  }
+  s.push('</svg>');
+  return s.join('\n');
+}
+
+function renderOrg(){
+  if(S.blocks.length===0){
+    $('#orgCanvas').innerHTML='<div style="padding:60px;text-align:center;color:var(--gray)">Chưa có khối nào. Nhấn "＋ Thêm khối" để bắt đầu.</div>';
+    renderOrgPanel(); return;
+  }
+  $('#orgCanvas').innerHTML = buildOrgSVG(false);
+  const _svg=$('#orgCanvas svg');
+  const _z=+(($('#orgZoom')||{}).value||1);
+  if(_z!==1){ _svg.style.width=(parseFloat(_svg.getAttribute('width'))*_z)+'px'; _svg.style.height='auto'; }
+  $('#orgCanvas svg').addEventListener('click', e=>{
+    const g = e.target.closest('[data-sel]');
+    if(!g){ sel=null; renderOrg(); return; }
+    const t=g.dataset.sel;
+    if(t==='addmem'){ addMemberToBlock(g.dataset.id); return; }
+    sel={type:t, id:g.dataset.id||null, block:g.dataset.block||null, manual:g.dataset.manual==='1'};
+    if(t==='block'){openAcc.blocks=true;} if(t==='boundary'){openAcc.bounds=true;}
+    if(t==='member'){openAcc.member=true;} if(t==='title'||t==='manager'){openAcc.gen=true;}
+    if(t==='legend'){openAcc.legend=true;}
+    renderOrg();
+  });
+  renderOrgPanel();
+}
+
+/* ---------- panel ---------- */
+function accH(key, title, body){
+  return '<div class="acc '+(openAcc[key]?'open':'')+'" data-acc="'+key+'">'+
+    '<div class="acc-h" onclick="toggleAcc(\''+key+'\')"><span>'+title+'</span><span class="chev">▸</span></div>'+
+    '<div class="acc-b">'+body+'</div></div>';
+}
+function toggleAcc(k){ openAcc[k]=!openAcc[k]; renderOrgPanel(); }
+
+function blockDiscSelectHTML(b){
+  const known=(S.disciplines||DEFAULT_DISCIPLINES).slice();
+  if(b.disc && !known.includes(b.disc)) known.push(b.disc);
+  return '<select onchange="upB(\''+b.id+'\',\'disc\',this.value)"><option value="">— chọn —</option>'+known.map(d=>'<option '+(d===b.disc?'selected':'')+'>'+esc(d)+'</option>').join('')+'</select>';
+}
+function blockCardHTML(b,i,arrName){
+  const isSel = sel && sel.type==='block' && sel.id===b.id;
+  let body='';
+  if(isSel){
+    body = '<label class="f">Tên Discipline (header)</label><input type="text" value="'+esc(b.name)+'" onchange="upB(\''+b.id+'\',\'name\',this.value)">'+
+    '<label class="f">Tên Team</label><input type="text" value="'+esc(b.teamTitle)+'" onchange="upB(\''+b.id+'\',\'teamTitle\',this.value)">'+
+    '<div class="row"><div><label class="f">Liên kết Discipline</label>'+blockDiscSelectHTML(b)+'</div></div>'+
+    '<div class="row"><div><label class="f">Fill color khối</label><input type="color" value="'+b.color+'" onchange="upB(\''+b.id+'\',\'color\',this.value)"></div>'+
+    '<div><label class="f">Màu chữ header</label><input type="color" value="'+b.headText+'" onchange="upB(\''+b.id+'\',\'headText\',this.value)"></div></div>'+
+    '<label class="f">Màu tên thành viên</label><div class="row"><select class="fix" style="width:150px" onchange="upB(\''+b.id+'\',\'memberColorMode\',this.value)"><option value="auto" '+(b.memberColorMode==='auto'?'selected':'')+'>Tự động (DE đỏ / CE đen)</option><option value="fixed" '+(b.memberColorMode==='fixed'?'selected':'')+'>Một màu cố định</option></select>'+
+    '<input type="color" class="fix" value="'+b.memberColor+'" onchange="upB(\''+b.id+'\',\'memberColor\',this.value)"></div>'+
+    (arrName==='blocks'? '<div class="row" style="margin-top:10px;"><button class="btn small" onclick="moveB(\''+b.id+'\',-1)">◀ Trái</button><button class="btn small" onclick="moveB(\''+b.id+'\',1)">Phải ▶</button><button class="btn small" style="color:var(--red)" onclick="delB(\''+b.id+'\')">🗑 Xóa</button></div>' :
+     '<div class="row" style="margin-top:10px;"><button class="btn small" style="color:var(--red)" onclick="delSideB(\''+b.id+'\')">🗑 Xóa</button></div>')+
+    '<p class="hint">Boundary tham chiếu theo vị trí khối chính — di chuyển khối sẽ giữ nguyên phạm vi from→to.</p>';
+  }
+  return '<div class="itemcard '+(isSel?'sel':'')+'"><div class="ic-h" onclick="selBlock(\''+b.id+'\')"><span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+b.color+';margin-right:6px;"></span>'+(i+1)+'. '+esc(b.name)+'</span><span style="color:var(--gray-2);font-weight:normal;">'+(assignPeople()[b.id]||[]).length+' 👤</span></div>'+body+'</div>';
+}
+function renderOrgPanel(){
+  const p=$('#orgPanel'); if(!p) return;
+  const blockOpts = i => S.blocks.map((b,j)=>'<option value="'+j+'" '+(j===i?'selected':'')+'>'+ (j+1)+'. '+esc(b.name)+'</option>').join('');
+
+  /* --- general --- */
+  let gen = '<label class="f">Tên sơ đồ (Chart title)</label><input type="text" value="'+esc(S.chartTitle)+'" onchange="S.chartTitle=this.value;renderOrg()">'+
+    '<label class="f">Dòng phụ (subtitle)</label><input type="text" value="'+esc(S.chartSub)+'" onchange="S.chartSub=this.value;renderOrg()">'+
+    '<div class="row"><div><label class="f">Màu tiêu đề</label><input type="color" value="'+S.titleColor+'" onchange="S.titleColor=this.value;renderOrg()"></div>'+
+    '<div><label class="f">Màu nền</label><input type="color" value="'+S.bgColor+'" onchange="S.bgColor=this.value;renderOrg()"></div></div>'+
+    '<div class="row"><div><label class="f">Engineering Manager – Title</label><input type="text" value="'+esc(S.manager.title)+'" onchange="S.manager.title=this.value;renderOrg()"></div>'+
+    '<div><label class="f">Engineering Manager – Name</label><input type="text" value="'+esc(S.manager.name)+'" onchange="S.manager.name=this.value;renderOrg()"></div></div>'+
+    '<div class="row"><div><label class="f">Deputy Engineering Manager – Title</label><input type="text" value="'+esc((S.manager2||{}).title)+'" onchange="S.manager2=S.manager2||{};S.manager2.title=this.value;renderOrg()"></div>'+
+    '<div><label class="f">Deputy Engineering Manager – Name</label><input type="text" value="'+esc((S.manager2||{}).name)+'" onchange="S.manager2=S.manager2||{};S.manager2.name=this.value;renderOrg()"></div></div>';
+
+  /* --- blocks --- */
+  let blocks = S.blocks.map((b,i)=>blockCardHTML(b,i,'blocks')).join('') + '<button class="btn navy small" onclick="addBlock()">＋ Thêm khối</button>';
+  const sb = S.sideBoundary||{};
+  let sideBlocksHTML = (S.sideBlocks||[]).map((b,i)=>blockCardHTML(b,i,'sideBlocks')).join('') +
+    '<div class="itemcard">'+
+    '<label class="f"><input type="checkbox" '+(sb.show!==false?'checked':'')+' onchange="S.sideBoundary=S.sideBoundary||{};S.sideBoundary.show=this.checked;renderOrg()" style="width:auto;margin-right:6px;">Hiện boundary nhóm trên</label>'+
+    '<label class="f">Nhãn boundary</label><input type="text" value="'+esc(sb.label||'')+'" onchange="S.sideBoundary=S.sideBoundary||{};S.sideBoundary.label=this.value;renderOrg()">'+
+    '<div class="row"><div><label class="f">Fill</label><input type="color" value="'+(sb.fill||'#EDF2FB')+'" onchange="S.sideBoundary.fill=this.value;renderOrg()"></div>'+
+    '<div><label class="f">Viền</label><input type="color" value="'+(sb.border||'#24408E')+'" onchange="S.sideBoundary.border=this.value;renderOrg()"></div>'+
+    '<div><label class="f">Chữ</label><input type="color" value="'+(sb.labelColor||'#24408E')+'" onchange="S.sideBoundary.labelColor=this.value;renderOrg()"></div></div>'+
+    '</div>'+
+    '<p class="hint">PMT và QA/QC & Document Control nằm bên trái, sát khối Engineering Manager / Deputy Engineering Manager và có boundary riêng. Khi thêm thành viên vào 2 nhóm này, sơ đồ tự giãn chiều cao — các discipline bên dưới được đẩy xuống, không bị đè.</p>';
+
+  /* --- boundaries --- */
+  let bounds = S.boundaries.map(bd=>{
+    const isSel = sel && sel.type==='boundary' && sel.id===bd.id;
+    return '<div class="itemcard '+(isSel?'sel':'')+'">'+
+    '<label class="f">Nhãn boundary</label><input type="text" value="'+esc(bd.label)+'" onchange="upBd(\''+bd.id+'\',\'label\',this.value)">'+
+    '<div class="row"><div><label class="f">Từ khối</label><select onchange="upBd(\''+bd.id+'\',\'from\',+this.value)">'+blockOpts(bd.from)+'</select></div>'+
+    '<div><label class="f">Đến khối</label><select onchange="upBd(\''+bd.id+'\',\'to\',+this.value)">'+blockOpts(bd.to)+'</select></div></div>'+
+    '<div class="row"><div><label class="f">Fill</label><input type="color" value="'+bd.fill+'" onchange="upBd(\''+bd.id+'\',\'fill\',this.value)"></div>'+
+    '<div><label class="f">Viền</label><input type="color" value="'+bd.border+'" onchange="upBd(\''+bd.id+'\',\'border\',this.value)"></div>'+
+    '<div><label class="f">Chữ</label><input type="color" value="'+bd.labelColor+'" onchange="upBd(\''+bd.id+'\',\'labelColor\',this.value)"></div></div>'+
+    '<button class="btn small" style="color:var(--red);margin-top:8px;" onclick="delBd(\''+bd.id+'\')">🗑 Xóa boundary</button></div>';
+  }).join('') + '<button class="btn navy small" onclick="addBoundaryUI()">＋ Thêm boundary</button>'+
+  '<p class="hint">Dùng boundary để khoanh vùng Main disciplines và Side disciplines (vd: 3D Modeling). Fill color giúp phân biệt main / side.</p>';
+
+  /* --- legend/colors --- */
+  let leg = '<label class="f"><input type="checkbox" '+(S.showLegend?'checked':'')+' onchange="S.showLegend=this.checked;renderOrg()" style="width:auto;margin-right:6px;">Hiện chú giải (legend)</label>'+
+    '<label class="f">Nhãn – Detailed Engineering</label><input type="text" value="'+esc(S.legendDE)+'" onchange="S.legendDE=this.value;renderOrg()">'+
+    '<label class="f">Nhãn – Construction Engineering</label><input type="text" value="'+esc(S.legendCE)+'" onchange="S.legendCE=this.value;renderOrg()">'+
+    '<div class="row"><div><label class="f">Màu tên Detailed Engineering</label><input type="color" value="'+S.deColor+'" onchange="S.deColor=this.value;renderOrg()"></div>'+
+    '<div><label class="f">Màu tên CE</label><input type="color" value="'+S.ceColor+'" onchange="S.ceColor=this.value;renderOrg()"></div></div>'+
+    '<p class="hint">Tên màu đỏ = Detailed Engineering (tick IMA trong DS_TK_IMA). Tên màu đen đậm = Construction Engineering. Tick/bỏ tick trong bảng sẽ đổi màu tự động. Tên "TBA" (in nghiêng) = vị trí giữ chỗ — màu đỏ/đen theo tick IMA giống nhân sự khác nhưng KHÔNG tính vào tổng nhân sự ở mọi tab cho đến khi đổi thành tên thật.</p>';
+
+  /* --- member editor --- */
+  let mem='<p class="hint">Nhấp vào một tên trong sơ đồ để chỉnh sửa. Mọi thay đổi đồng bộ với DS_TK_IMA / DS_TK_ALL.</p>';
+  if(sel && sel.type==='member'){
+    if(sel.manual){
+      const b=allBlocks().find(x=>x.id===sel.block); const ex=b&&b.extra.find(e=>e.id===sel.id);
+      if(ex) mem='<p class="hint">Thành viên nhập tay (không nằm trong danh sách nhân sự). Đặt tên "TBA" để tạo vị trí giữ chỗ — hiện trên sơ đồ nhưng không tính vào tổng nhân sự.</p>'+
+        '<label class="f">Tên</label><input type="text" value="'+esc(ex.name)+'" onchange="ex_rename(\''+b.id+'\',\''+ex.id+'\',this.value)">'+
+        '<label class="f">Chức danh (hiện sau tên)</label><input type="text" value="'+esc(ex.title||'')+'" onchange="ex_title(\''+b.id+'\',\''+ex.id+'\',this.value)">'+
+        '<button class="btn small" style="color:var(--red);margin-top:8px;" onclick="ex_del(\''+b.id+'\',\''+ex.id+'\')">🗑 Xóa khỏi khối</button>';
+    }else{
+      const pr=S.people.find(x=>x.id===sel.id);
+      if(pr) mem='<label class="f">Họ và tên</label><input type="text" value="'+esc(pr.name)+'" onchange="upP(\''+pr.id+'\',\'name\',this.value)">'+
+        '<label class="f">Discipline</label>'+discSelectHTML(pr)+
+        '<label class="f">Chức danh</label>'+titleSelectHTML(pr)+
+        '<p class="hint" style="margin-top:8px;">'+(isDE(pr)?'<span class="chip badge-de">Detailed Engineering</span>':'<span class="chip badge-ce">Construction Eng.</span>')+' — đổi bằng cách tick cột IMA trong tab DS_TK_IMA.</p>'+
+        '<div class="row" style="margin-top:8px;"><button class="btn small" onclick="moveMember(\''+pr.id+'\',-1)">▲ Move up</button><button class="btn small" onclick="moveMember(\''+pr.id+'\',1)">▼ Move down</button></div>'+
+        '<button class="btn small" style="color:var(--red);margin-top:8px;" onclick="delPerson(\''+pr.id+'\')">🗑 Xóa nhân sự (cả 2 sheet)</button>';
+    }
+  }
+
+  p.innerHTML = accH('gen','① Tiêu đề & Quản lý', gen) + accH('blocks','② Khối Discipline ('+S.blocks.length+')', blocks) +
+                accH('side','②b PMT / QA-QC (bên trái) ('+(S.sideBlocks||[]).length+')', sideBlocksHTML) +
+                accH('bounds','③ Boundary ('+S.boundaries.length+')', bounds) + accH('legend','④ Chú giải & Màu tên', leg) +
+                accH('member','⑤ Thành viên đang chọn', mem);
+}
+
+/* block ops */
+function selBlock(id){ sel={type:'block', id}; renderOrg(); }
+function upB(id,k,v){ const b=allBlocks().find(x=>x.id===id); if(b){ b[k]=v; renderOrg(); } }
+function moveB(id,d){
+  const i=S.blocks.findIndex(x=>x.id===id); const j=i+d;
+  if(j<0||j>=S.blocks.length) return;
+  const [b]=S.blocks.splice(i,1); S.blocks.splice(j,0,b); renderOrg();
+}
+function delSideB(id){
+  if(!confirm('Xóa khối này khỏi sơ đồ? (Nhân sự trong bảng không bị xóa)')) return;
+  S.sideBlocks = (S.sideBlocks||[]).filter(x=>x.id!==id);
+  sel=null; renderOrg();
+}
+function delB(id){
+  if(!confirm('Xóa khối này khỏi sơ đồ? (Nhân sự trong bảng không bị xóa)')) return;
+  S.blocks = S.blocks.filter(x=>x.id!==id);
+  if(S.blocks.length===0) S.boundaries=[];
+  else S.boundaries.forEach(bd=>{ bd.from=Math.max(0,Math.min(bd.from,S.blocks.length-1)); bd.to=Math.max(0,Math.min(bd.to,S.blocks.length-1)); });
+  sel=null; renderOrg();
+}
+function addBlock(){
+  const name = prompt('Tên Discipline / Team mới (vd: 3D Modeling):','3D Modeling');
+  if(name==null) return;
+  const nm = name.trim()||'New Discipline';
+  const b = mkBlock(nm, nm+' Team', nm, '#24408E');
+  if(!S.disciplines.includes(nm)) S.disciplines.push(nm);
+  S.blocks.push(b); sel={type:'block', id:b.id}; openAcc.blocks=true;
+  showView('org'); toast('Đã thêm khối "'+nm+'" – người có Discipline này sẽ tự động xuất hiện trong khối.');
+}
+function addMemberToBlock(id){
+  const b=allBlocks().find(x=>x.id===id); if(!b) return;
+  const name=prompt('Tên thành viên mới cho khối "'+b.name+'":\n(Sẽ thêm vào DS_TK_IMA & DS_TK_ALL nếu khối có liên kết Discipline; nếu không sẽ là thành viên nhập tay)\n\nMẹo: nhập "TBA" để tạo vị trí giữ chỗ — hiện trên sơ đồ nhưng KHÔNG tính vào tổng nhân sự cho đến khi đổi thành tên thật.');
+  if(!name) return;
+  if(b.disc){
+    S.people.push({id:uid(), msnv:'', name:name.trim(), title:'', email:'', disc:b.disc, tIMA:{}, tALL:{}});
+    toast('Đã thêm vào khối và cả 2 sheet nhân sự – chọn Chức danh ở DS_TK_IMA/ALL');
+  }else{
+    b.extra.push({id:uid(), name:name.trim()});
+    toast('Đã thêm thành viên nhập tay vào khối');
+  }
+  renderAll();
+}
+function ex_rename(bid,eid,v){ const b=allBlocks().find(x=>x.id===bid); const e=b&&b.extra.find(x=>x.id===eid); if(e){e.name=v; renderOrg();} }
+function ex_title(bid,eid,v){ const b=allBlocks().find(x=>x.id===bid); const e=b&&b.extra.find(x=>x.id===eid); if(e){e.title=v; renderOrg();} }
+function ex_del(bid,eid){ const b=allBlocks().find(x=>x.id===bid); if(b){ b.extra=b.extra.filter(x=>x.id!==eid); sel=null; renderOrg(); } }
+
+/* boundary ops */
+function upBd(id,k,v){ const bd=S.boundaries.find(x=>x.id===id); if(bd){ bd[k]=v; renderOrg(); } }
+function delBd(id){ S.boundaries=S.boundaries.filter(x=>x.id!==id); if(sel&&sel.id===id) sel=null; renderOrg(); }
+function addBoundaryUI(){
+  S.boundaries.push({id:uid(), label:'NEW BOUNDARY', from:0, to:Math.max(0,S.blocks.length-1), fill:'#FFF6E5', border:'#C77700', labelColor:'#C77700'});
+  openAcc.bounds=true; showView('org');
+}
+
+/* person ops (sync everywhere) */
+function upP(id,k,v){ const p=S.people.find(x=>x.id===id); if(p){ p[k]=v; renderAll(); } }
+function delPerson(id){
+  const p=S.people.find(x=>x.id===id); if(!p) return;
+  if(!confirm('Xóa "'+p.name+'" khỏi DS_TK_IMA, DS_TK_ALL và sơ đồ tổ chức?')) return;
+  S.people=S.people.filter(x=>x.id!==id); sel=null; renderAll(); toast('Đã xóa nhân sự khỏi toàn bộ hệ thống');
+}
+
+/* ---------- export org PNG ---------- */
+function exportOrgPNG(){
+  const svg = buildOrgSVG(true);
+  const scale = +($('#orgScale').value||3);
+  svgToPNG(svg, scale, safeName(S.chartTitle)+'_'+scale+'x.png');
+}
+function safeName(s){ return String(s||'chart').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'_').slice(0,60); }
+function svgToPNG(svgStr, scale, filename){
+  const m = svgStr.match(/width="([\d.]+)" height="([\d.]+)"/);
+  const w=+m[1], h=+m[2];
+  const blob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const img=new Image();
+  img.onload=()=>{
+    const cv=document.createElement('canvas'); cv.width=Math.round(w*scale); cv.height=Math.round(h*scale);
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle = S.bgColor||'#fff'; ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.scale(scale,scale); ctx.drawImage(img,0,0);
+    URL.revokeObjectURL(url);
+    cv.toBlob(b=>{
+      const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=filename; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+      toast('Đã xuất PNG '+cv.width+'×'+cv.height+' px – sẵn sàng chèn vào slide');
+    },'image/png');
+  };
+  img.onerror=()=>{ URL.revokeObjectURL(url); toast('Lỗi khi dựng ảnh'); };
+  img.src=url;
+}
+
+/* ================= TABLES (DS_TK_IMA / DS_TK_ALL) ================= */
+const TEXT_COLS = [
+  {k:'msnv', label:'MSNV', w:95},
+  {k:'name', label:'Họ Và Tên', w:180},
+  {k:'disc', label:'Discipline', w:175},
+  {k:'title', label:'Chức Danh', w:210},
+  {k:'email', label:'Email', w:190},
+];
+function discSelectHTML(p){
+  const cur = p.disc||'';
+  const known = (S.disciplines||DEFAULT_DISCIPLINES).slice();
+  if(cur && !known.includes(cur)) known.push(cur);
+  const opts = known.map(d=>'<option value="'+esc(d)+'" '+(d===cur?'selected':'')+'>'+esc(d)+'</option>').join('');
+  return '<select onchange="discSelectChange(this,\''+p.id+'\')"><option value="">—</option>'+opts+'<option value="__add__">+ Thêm discipline…</option></select>';
+}
+function discSelectChange(sel,id){
+  const p=S.people.find(x=>x.id===id); if(!p) return;
+  if(sel.value==='__add__'){
+    const name=prompt('Tên discipline mới:');
+    const nm=(name||'').trim();
+    if(nm){
+      S.disciplines=S.disciplines||DEFAULT_DISCIPLINES.slice();
+      if(!S.disciplines.includes(nm)) S.disciplines.push(nm);
+      p.disc=nm; if(!discTitleOptions(nm).includes(p.title)) p.title='';
+      toast('Đã thêm discipline "'+nm+'" — chưa hiện trên sơ đồ tới khi thêm khối tương ứng');
+    }
+    renderAll(); return;
+  }
+  p.disc=sel.value; if(!discTitleOptions(p.disc).includes(p.title)) p.title='';
+  renderAll();
+}
+function titleSelectHTML(p){
+  const opts=discTitleOptions(p.disc);
+  if(!opts.length) return '<select disabled><option>— chọn Discipline trước —</option></select>';
+  const cur=p.title||'';
+  const extra = cur && !opts.includes(cur) ? '<option value="'+esc(cur)+'" selected>'+esc(cur)+'</option>' : '';
+  return '<select onchange="titleSelectChange(this,\''+p.id+'\')"><option value="">—</option>'+extra+opts.map(o=>'<option '+(o===cur?'selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';
+}
+function titleSelectChange(sel,id){ const p=S.people.find(x=>x.id===id); if(p){ p.title=sel.value; renderAll(); } }
+function projCols(which){ return which==='ima'? PROJECTS_IMA : PROJECTS_ALL; }
+function tickField(which){ return which==='ima'? 'tIMA' : 'tALL'; }
+
+function visibleRows(which){
+  const f = S.filters[which]||{};
+  let rows = S.people.filter(p=>{
+    for(const key in f){
+      if(!f[key]) continue;
+      const vals = f[key];
+      let v;
+      if(key.startsWith('@')) v = p[tickField(which)][key.slice(1)]||'';
+      else v = p[key]||'';
+      v = String(v);
+      if(!vals.includes(v)) return false;
+    }
+    return true;
+  });
+  const srt = S.sort[which];
+  if(srt){
+    rows = rows.slice().sort((a,b)=>{
+      let va, vb;
+      if(srt.key.startsWith('@')){ va=a[tickField(which)][srt.key.slice(1)]||''; vb=b[tickField(which)][srt.key.slice(1)]||''; }
+      else { va=a[srt.key]||''; vb=b[srt.key]||''; }
+      return String(va).localeCompare(String(vb),'vi') * (srt.dir||1);
+    });
+  }
+  return rows;
+}
+
+function renderTable(which){
+  const host = which==='ima'? $('#tblIMA') : $('#tblALL');
+  if(!host) return;
+  const cols = projCols(which), tf = tickField(which);
+  const rows = visibleRows(which);
+  const f = S.filters[which]||{};
+
+  let h = '<table class="grid"><thead><tr>';
+  h += '<th style="min-width:36px;">STT</th>';
+  for(const c of TEXT_COLS) h += '<th style="min-width:'+c.w+'px;">'+c.label+' <span class="fbtn '+(f[c.k]?'on':'')+'" onclick="openFilter(event,\''+which+'\',\''+c.k+'\')">▼</span></th>';
+  for(const pj of cols){
+    const key='@'+pj;
+    h += '<th class="proj" title="'+esc(pj)+'">'+esc(uiProjectLabel(pj))+' <span class="fbtn '+(f[key]?'on':'')+'" onclick="openFilter(event,\''+which+'\',\''+esc(key)+'\')">▼</span></th>';
+  }
+  h += '<th></th></tr></thead><tbody>';
+
+  rows.forEach((p,i)=>{
+    h += '<tr data-id="'+p.id+'">';
+    h += '<td class="rownum">'+(i+1)+'</td>';
+    for(const c of TEXT_COLS){
+      if(c.k==='disc'){ h += '<td>'+discSelectHTML(p)+'</td>'; continue; }
+      if(c.k==='title'){ h += '<td>'+titleSelectHTML(p)+'</td>'; continue; }
+      let style='';
+      if(c.k==='name') style = 'style="font-weight:bold; color:'+(isDE(p)? S.deColor : S.ceColor)+';"';
+      h += '<td contenteditable spellcheck="false" '+style+' data-k="'+c.k+'" onblur="cellEdit(this,\''+p.id+'\')" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}">'+esc(p[c.k])+'</td>';
+    }
+    for(const pj of cols){
+      const v = p[tf][pj]||'';
+      h += '<td class="tick" data-pj="'+esc(pj)+'" onclick="cycleTick(\''+which+'\',\''+p.id+'\',this)" title="Nhấp: trống → ✓ → X → trống">'+tickHTML(v)+'</td>';
+    }
+    h += '<td class="delcell"><button title="Xóa hàng (cả 2 sheet)" onclick="delPerson(\''+p.id+'\')">✕</button></td>';
+    h += '</tr>';
+  });
+
+  // totals
+  const realRows = rows.filter(p=>!isTBA(p));
+  const tbaRows = rows.length - realRows.length;
+  h += '<tr class="totals"><td colspan="'+(1+TEXT_COLS.length)+'">TỔNG SỐ TICK (✓ + X) — hiển thị '+realRows.length+' / '+realPeople().length+' nhân sự'+(tbaRows? ' (+'+tbaRows+' TBA không tính)':'')+'</td>';
+  for(const pj of cols){
+    const n = realRows.filter(p=>isTick(p[tf][pj])).length;
+    h += '<td>'+(n||'')+'</td>';
+  }
+  h += '<td></td></tr>';
+  h += '</tbody></table>';
+  host.innerHTML = h;
+}
+
+function cellEdit(td, id){
+  const p=S.people.find(x=>x.id===id); if(!p) return;
+  p[td.dataset.k]=td.textContent.trim();
+  renderAll();
+}
+function cycleTick(which, id, td){
+  const p=S.people.find(x=>x.id===id); if(!p) return;
+  const tf=tickField(which), pj=td.dataset.pj;
+  const v=p[tf][pj]||'';
+  let nv;
+  if(v==='') nv='✓';
+  else if(v==='✓') nv='X';
+  else if(isTick(v)) nv='';
+  else nv='';                     // custom text → clear
+  if(nv==='') delete p[tf][pj]; else p[tf][pj]=nv;
+  renderAll();
+}
+function tickText(ev, which, id, td){ if(ev) ev.preventDefault(); toast('Ghi chú text đã được tắt theo yêu cầu; chỉ dùng tick ✓ / X / trống.'); }
+function addPersonRow(which){
+  const p={id:uid(), msnv:'', name:'Nhân sự mới', title:'', email:'', disc:'', tIMA:{}, tALL:{}};
+  S.people.push(p);
+  renderAll();
+  showView(which);
+  // focus new row's name
+  setTimeout(()=>{
+    const tr=$('tr[data-id="'+p.id+'"]'); if(tr){ tr.scrollIntoView({block:'center'}); const td=tr.querySelector('[data-k="name"]'); if(td){td.focus(); document.execCommand&&document.execCommand('selectAll',false,null);} }
+  },50);
+  toast('Đã thêm hàng — nhân sự xuất hiện ở cả 2 sheet và sơ đồ (khi điền Discipline)');
+}
+
+/* ---------- Excel-like filter popup ---------- */
+let _fpop=null;
+function closeFilter(){ if(_fpop){_fpop.remove(); _fpop=null;} }
+document.addEventListener('click', e=>{ if(_fpop && !_fpop.contains(e.target) && !e.target.classList.contains('fbtn')) closeFilter(); });
+
+function openFilter(ev, which, key){
+  ev.stopPropagation(); closeFilter();
+  const tf=tickField(which);
+  const getVal = p => key.startsWith('@')? String(p[tf][key.slice(1)]||'') : String(p[key]||'');
+  const distinct = Array.from(new Set(S.people.map(getVal))).sort((a,b)=>a.localeCompare(b,'vi'));
+  const cur = (S.filters[which]||{})[key];
+  const pop=document.createElement('div'); pop.className='fpop';
+  pop.innerHTML =
+    '<div class="row"><button class="btn small" style="flex:1" onclick="setSort(\''+which+'\',\''+esc(key)+'\',1)">↑ A→Z</button><button class="btn small" style="flex:1" onclick="setSort(\''+which+'\',\''+esc(key)+'\',-1)">↓ Z→A</button></div>'+
+    '<input type="text" placeholder="Tìm..." style="margin-top:8px;" oninput="fpopSearch(this)">'+
+    '<div class="fp-list">'+distinct.map(v=>{
+      const label = v===''? '(Trống)' : v;
+      const ck = !cur || cur.includes(v);
+      return '<label data-v="'+esc(v)+'"><input type="checkbox" '+(ck?'checked':'')+' value="'+esc(v)+'">'+esc(label)+'</label>';
+    }).join('')+'</div>'+
+    '<div class="fp-actions"><button class="btn small" onclick="fpopAll(true)">Chọn hết</button><button class="btn small" onclick="fpopAll(false)">Bỏ hết</button><button class="btn small primary" onclick="applyFilter(\''+which+'\',\''+esc(key)+'\')">OK</button></div>';
+  document.body.appendChild(pop);
+  const r=ev.target.getBoundingClientRect();
+  pop.style.left=Math.min(r.left, window.innerWidth-250)+'px';
+  pop.style.top=(r.bottom+6)+'px';
+  _fpop=pop;
+}
+function fpopSearch(inp){
+  const q=inp.value.toLowerCase();
+  $$('.fp-list label',_fpop).forEach(l=> l.style.display = l.textContent.toLowerCase().includes(q)?'':'none');
+}
+function fpopAll(v){ $$('.fp-list input',_fpop).forEach(c=>{ if(c.parentElement.style.display!=='none') c.checked=v; }); }
+function applyFilter(which,key){
+  const vals = $$('.fp-list input',_fpop).filter(c=>c.checked).map(c=>c.value);
+  const total = $$('.fp-list input',_fpop).length;
+  if(!S.filters[which]) S.filters[which]={};
+  if(vals.length===total) delete S.filters[which][key];
+  else S.filters[which][key]=vals;
+  closeFilter(); renderTable(which);
+}
+function setSort(which,key,dir){ S.sort[which]={key,dir}; closeFilter(); renderTable(which); }
+function clearFilters(which){ S.filters[which]={}; S.sort[which]=null; renderTable(which); toast('Đã xóa bộ lọc & sắp xếp'); }
+
+/* ================= DASHBOARD ================= */
+function shade(hex, f){ // f in [-1,1]; positive = lighter
+  const c=hex.replace('#',''); const n=parseInt(c,16);
+  let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  if(f>=0){ r+= (255-r)*f; g+=(255-g)*f; b+=(255-b)*f; } else { r*=1+f; g*=1+f; b*=1+f; }
+  return '#'+[r,g,b].map(x=>Math.round(x).toString(16).padStart(2,'0')).join('');
+}
+
+function mobilizationData(){
+  const ideal = realPeople().filter(isDE);
+  const cats=[]; // {label, value, group:'ideal'|'prio'|'busy', names[]}
+  cats.push({label:'Lý tưởng cho IMA', value:ideal.length, group:'ideal', names:ideal.map(p=>p.name)});
+  // priority: ticked IMA in ALL, grouped by number of other CE projects
+  const prio = realPeople().filter(canPrio);
+  const byN = {};
+  prio.forEach(p=>{ const n=otherCE(p); (byN[n]=byN[n]||[]).push(p); });
+  Object.keys(byN).map(Number).sort((a,b)=>a-b).forEach(n=>{
+    const lbl = n===0? 'Ưu tiên IMA (chỉ IMA)' : 'Ưu tiên IMA + '+n+' DA CE';
+    cats.push({label:lbl, value:byN[n].length, group:'prio', names:byN[n].map(p=>p.name)});
+  });
+  // busy: capable (tIMA) but NOT ticked in ALL → cannot do IMA
+  const busy = realPeople().filter(p=>isDE(p) && !canPrio(p));
+  const byB={};
+  busy.forEach(p=>{ const n=otherCE(p); (byB[n]=byB[n]||[]).push(p); });
+  Object.keys(byB).map(Number).sort((a,b)=>a-b).forEach(n=>{
+    const lbl = n===0? 'Không thể IMA (chưa gán DA)' : 'Không thể IMA (đang '+n+' DA CE)';
+    cats.push({label:lbl, value:byB[n].length, group:'busy', names:byB[n].map(p=>p.name)});
+  });
+  return cats;
+}
+
+function catColor(c, cfg){
+  if(c.group==='ideal') return cfg.colorIdeal;
+  if(c.group==='prio') return cfg.colorPrio;
+  return cfg.colorBusy;
+}
+
+/* --------- bar chart SVG --------- */
+function buildChart1SVG(){
+  const cfg=S.chart1;
+  const data=mobilizationData();
+  const W=900, padL=64, padR=24, padT=64;
+  const rot=+cfg.rotate||0;
+  const maxLblW = Math.max(...data.map(d=>tw(d.label,'11.5px Arial')));
+  const padB = 46 + (rot===0? 30 : Math.min(maxLblW*Math.sin(rot*Math.PI/180)+22, 150)) + 26;
+  const H=430+ (padB-100>0? padB-100:0);
+  const cw=W-padL-padR, ch=H-padT-padB;
+  const maxV=Math.max(...data.map(d=>d.value),1);
+  const step = maxV<=10?1: maxV<=25?5:10;
+  const yMax=Math.ceil(maxV/step)*step;
+  const bw=Math.min(70, cw/data.length*0.62);
+  const s=[];
+  s.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Arial, sans-serif">');
+  s.push('<rect width="'+W+'" height="'+H+'" fill="#FFFFFF"/>');
+  s.push('<rect x="0" y="0" width="'+W+'" height="5" fill="'+S.deColor+'"/>');
+  s.push(svgText(W/2, 32, cfg.title, 'text-anchor="middle" font-size="16.5" font-weight="bold" fill="'+S.titleColor+'"'));
+  // grid + y axis
+  for(let v=0;v<=yMax;v+=step){
+    const y=padT+ch - ch*v/yMax;
+    s.push('<line x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'" stroke="#E1E7F3" stroke-width="1"/>');
+    s.push(svgText(padL-8, y+4, String(v), 'text-anchor="end" font-size="11" fill="#6B7488"'));
+  }
+  // bars
+  data.forEach((d,i)=>{
+    const cx=padL + cw*(i+0.5)/data.length;
+    const h=ch*d.value/yMax, y=padT+ch-h;
+    const col=catColor(d,cfg);
+    s.push('<rect x="'+(cx-bw/2)+'" y="'+y+'" width="'+bw+'" height="'+h+'" rx="4" fill="'+col+'"><title>'+esc(d.label+' ('+d.value+'): '+d.names.join(', '))+'</title></rect>');
+    if(cfg.showValues && d.value>0) s.push(svgText(cx, y-7, String(d.value), 'text-anchor="middle" font-size="13" font-weight="bold" fill="'+col+'"'));
+    // x labels
+    const ly=padT+ch+18;
+    if(rot===0){
+      const lines=wrap(d.label, cw/data.length-8, '11px Arial');
+      let yy=ly; lines.slice(0,3).forEach(ln=>{ s.push(svgText(cx, yy, ln, 'text-anchor="middle" font-size="11" fill="#1a2333"')); yy+=13; });
+    }else{
+      s.push('<text x="'+cx+'" y="'+ly+'" font-size="11" fill="#1a2333" text-anchor="end" transform="rotate(-'+rot+' '+cx+' '+ly+')">'+esc(d.label)+'</text>');
+    }
+  });
+  // axes titles
+  s.push(svgText(W/2, H-10, cfg.xTitle, 'text-anchor="middle" font-size="12" font-weight="bold" fill="#6B7488"'));
+  s.push('<text x="16" y="'+(padT+ch/2)+'" font-size="12" font-weight="bold" fill="#6B7488" text-anchor="middle" transform="rotate(-90 16 '+(padT+ch/2)+')">'+esc(cfg.yTitle)+'</text>');
+  // legend
+  if(cfg.showLegend){
+    const items=[[cfg.colorIdeal,cfg.legendIdeal],[cfg.colorPrio,cfg.legendPrio],[cfg.colorBusy,cfg.legendBusy]];
+    let lx=padL, lyy=50;
+    items.forEach(([c,t])=>{
+      s.push('<rect x="'+lx+'" y="'+(lyy-10)+'" width="12" height="12" rx="2" fill="'+c+'"/>');
+      s.push(svgText(lx+17, lyy, t, 'font-size="11" fill="#1a2333"'));
+      lx += 17+tw(t,'11px Arial')+22;
+    });
+  }
+  s.push('</svg>');
+  return s.join('\n');
+}
+
+/* --------- allocation chart (donut + bars) --------- */
+function allocationData(){
+  const cfg=S.chart2;
+  const proj = PROJECTS_ALL.filter(p=>!NON_PROJECT_COLS.includes(p));
+  const res = proj.map(p=>({name:p, effort:0, head:0}));
+  const idx = Object.fromEntries(res.map((r,i)=>[r.name,i]));
+  let unassigned=0;
+  for(const p of realPeople()){
+    const ticked = proj.filter(k=>isTick(p.tALL[k]));
+    if(ticked.length===0){ unassigned++; continue; }
+    ticked.forEach(k=>{ res[idx[k]].head++; res[idx[k]].effort += 1/ticked.length; });
+  }
+  const out = res.filter(r=>r.head>0).sort((a,b)=>b.effort-a.effort);
+  if(unassigned>0) out.push({name:'Chưa gán dự án', effort:unassigned, head:unassigned, un:true});
+  return out;
+}
+const PALETTE=['#D91F24','#1B2C5C','#24408E','#2E9E5B','#C77700','#7A4FBF','#0E8FA8','#B23A6B','#5B7A2E','#8C6D1F','#4A5568','#C05621','#2C7A7B'];
+
+function buildChart2SVG(){
+  const cfg=S.chart2;
+  const data=allocationData();
+  const totalE=data.reduce((a,b)=>a+b.effort,0)||1;
+  const W=900, H=90+Math.max(300, data.length*30+60);
+  const s=[];
+  s.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Arial, sans-serif">');
+  s.push('<rect width="'+W+'" height="'+H+'" fill="#FFFFFF"/>');
+  s.push('<rect x="0" y="0" width="'+W+'" height="5" fill="'+S.deColor+'"/>');
+  s.push(svgText(W/2, 32, cfg.title, 'text-anchor="middle" font-size="16.5" font-weight="bold" fill="'+S.titleColor+'"'));
+  s.push(svgText(W/2, 52, cfg.mode==='effort'? '(% effort — mỗi nhân sự chia đều cho các dự án đang tham gia trong DS_TK_ALL)':'(theo số lượt nhân sự được tick trong DS_TK_ALL)', 'text-anchor="middle" font-size="11" fill="#6B7488"'));
+
+  // donut
+  const cx=210, cy=110+ (H-160)/2 - 40, R=105, r=58;
+  let a0=-Math.PI/2;
+  data.forEach((d,i)=>{
+    const val = cfg.mode==='effort'? d.effort : d.head;
+    const tot = cfg.mode==='effort'? totalE : data.reduce((a,b)=>a+b.head,0);
+    const frac = val/tot;
+    const a1=a0+frac*2*Math.PI;
+    const large = frac>0.5?1:0;
+    const x0=cx+R*Math.cos(a0), y0=cy+R*Math.sin(a0), x1=cx+R*Math.cos(a1), y1=cy+R*Math.sin(a1);
+    const xi=cx+r*Math.cos(a1), yi=cy+r*Math.sin(a1), xi0=cx+r*Math.cos(a0), yi0=cy+r*Math.sin(a0);
+    const col=d.un?'#9AA2B4':PALETTE[i%PALETTE.length];
+    s.push('<path d="M '+x0+' '+y0+' A '+R+' '+R+' 0 '+large+' 1 '+x1+' '+y1+' L '+xi+' '+yi+' A '+r+' '+r+' 0 '+large+' 0 '+xi0+' '+yi0+' Z" fill="'+col+'" stroke="#fff" stroke-width="1.5"><title>'+esc(d.name+': '+(frac*100).toFixed(1)+'%')+'</title></path>');
+    if(cfg.showValues && frac>0.035){
+      const am=(a0+a1)/2, tx=cx+(R+r)/2*Math.cos(am), ty2=cy+(R+r)/2*Math.sin(am);
+      s.push(svgText(tx, ty2+4, (frac*100).toFixed(0)+'%', 'text-anchor="middle" font-size="11" font-weight="bold" fill="#FFFFFF"'));
+    }
+    a0=a1;
+  });
+  s.push(svgText(cx, cy-2, String(realPeople().length), 'text-anchor="middle" font-size="26" font-weight="bold" fill="'+S.titleColor+'"'));
+  s.push(svgText(cx, cy+18, 'nhân sự', 'text-anchor="middle" font-size="11" fill="#6B7488"'));
+
+  // horizontal bars with legend on right
+  const bx=430, bw=W-bx-140, by=82, bh=20, gap2=9;
+  const maxV = Math.max(...data.map(d=> cfg.mode==='effort'? d.effort : d.head));
+  data.forEach((d,i)=>{
+    const y=by+i*(bh+gap2);
+    const val = cfg.mode==='effort'? d.effort : d.head;
+    const col=d.un?'#9AA2B4':PALETTE[i%PALETTE.length];
+    s.push('<rect x="'+bx+'" y="'+y+'" width="'+(bw*val/maxV)+'" height="'+bh+'" rx="3" fill="'+col+'"/>');
+    s.push(svgText(bx-8, y+bh-6, d.name, 'text-anchor="end" font-size="11.5" font-weight="bold" fill="#1a2333"'));
+    const pct = cfg.mode==='effort'? (d.effort/totalE*100).toFixed(1)+'%' : d.head+' người';
+    const lbl = cfg.mode==='effort'? (d.effort.toFixed(1)+' FTE · '+pct+' · '+d.head+' người') : (d.head+' người');
+    s.push(svgText(bx+bw*val/maxV+7, y+bh-6, lbl, 'font-size="11" fill="#6B7488"'));
+  });
+  s.push('</svg>');
+  return s.join('\n');
+}
+
+function renderDash(){
+  // KPIs (không tính các vị trí TBA)
+  const rp=realPeople();
+  const total=rp.length;
+  const ideal=rp.filter(isDE).length;
+  const prio=rp.filter(canPrio).length;
+  const busy=rp.filter(p=>isDE(p)&&!canPrio(p)).length;
+  const ce=total-ideal;
+  $('#kpis').innerHTML =
+    '<div class="kpi"><div class="n">'+total+'</div><div class="l">Tổng nhân sự Tổ thiết kế</div></div>'+
+    '<div class="kpi green"><div class="n">'+ideal+'</div><div class="l">Năng lực làm IMA lý tưởng (DE – tick DS_TK_IMA)</div></div>'+
+    '<div class="kpi"><div class="n">'+prio+'</div><div class="l">Có thể ưu tiên IMA (tick IMA trong DS_TK_ALL)</div></div>'+
+    '<div class="kpi red"><div class="n">'+busy+'</div><div class="l">Có năng lực nhưng bận dự án CE, không thể làm IMA</div></div>'+
+    '<div class="kpi"><div class="n">'+ce+'</div><div class="l">Nhân sự thiên về Construction Engineering</div></div>';
+  $('#chart1').innerHTML = buildChart1SVG();
+  $('#chart2').innerHTML = buildChart2SVG();
+  renderDashPanel();
+}
+
+function renderDashPanel(){
+  const c1=S.chart1, c2=S.chart2;
+  $('#dashPanel').innerHTML =
+  '<div class="acc open"><div class="acc-h"><span>Biểu đồ ① – Khả năng huy động</span></div><div class="acc-b" style="display:block">'+
+    '<label class="f">Tiêu đề biểu đồ</label><input type="text" value="'+esc(c1.title)+'" onchange="S.chart1.title=this.value;renderDash()">'+
+    '<label class="f">Tên trục hoành (X)</label><input type="text" value="'+esc(c1.xTitle)+'" onchange="S.chart1.xTitle=this.value;renderDash()">'+
+    '<label class="f">Tên trục tung (Y)</label><input type="text" value="'+esc(c1.yTitle)+'" onchange="S.chart1.yTitle=this.value;renderDash()">'+
+    '<label class="f">Hướng nhãn trục X</label><select onchange="S.chart1.rotate=+this.value;renderDash()">'+
+      [[0,'Ngang (0°)'],[30,'Nghiêng 30°'],[45,'Nghiêng 45°'],[90,'Dọc 90°']].map(([v,t])=>'<option value="'+v+'" '+(c1.rotate===v?'selected':'')+'>'+t+'</option>').join('')+'</select>'+
+    '<label class="f" style="margin-top:10px;"><input type="checkbox" style="width:auto;margin-right:6px;" '+(c1.showValues?'checked':'')+' onchange="S.chart1.showValues=this.checked;renderDash()">Hiện số liệu trên cột</label>'+
+    '<label class="f"><input type="checkbox" style="width:auto;margin-right:6px;" '+(c1.showLegend?'checked':'')+' onchange="S.chart1.showLegend=this.checked;renderDash()">Hiện chú giải</label>'+
+    '<label class="f">Chú giải & màu nhóm</label>'+
+    '<div class="row"><input type="color" class="fix" value="'+c1.colorIdeal+'" onchange="S.chart1.colorIdeal=this.value;renderDash()"><input type="text" value="'+esc(c1.legendIdeal)+'" onchange="S.chart1.legendIdeal=this.value;renderDash()"></div>'+
+    '<div class="row" style="margin-top:5px;"><input type="color" class="fix" value="'+c1.colorPrio+'" onchange="S.chart1.colorPrio=this.value;renderDash()"><input type="text" value="'+esc(c1.legendPrio)+'" onchange="S.chart1.legendPrio=this.value;renderDash()"></div>'+
+    '<div class="row" style="margin-top:5px;"><input type="color" class="fix" value="'+c1.colorBusy+'" onchange="S.chart1.colorBusy=this.value;renderDash()"><input type="text" value="'+esc(c1.legendBusy)+'" onchange="S.chart1.legendBusy=this.value;renderDash()"></div>'+
+    '<div class="row" style="margin-top:12px;"><select id="c1scale" class="fix" style="width:70px"><option value="2">2×</option><option value="3" selected>3×</option><option value="4">4×</option></select>'+
+    '<button class="btn primary small" onclick="exportChartPNG(1)">📷 Xuất PNG</button></div>'+
+    '<p class="hint">Di chuột lên cột để xem danh sách tên nhân sự trong nhóm.</p>'+
+  '</div></div>'+
+  '<div class="acc open"><div class="acc-h"><span>Biểu đồ ② – Phân bổ nguồn lực</span></div><div class="acc-b" style="display:block">'+
+    '<label class="f">Tiêu đề biểu đồ</label><input type="text" value="'+esc(c2.title)+'" onchange="S.chart2.title=this.value;renderDash()">'+
+    '<label class="f">Cách tính</label><select onchange="S.chart2.mode=this.value;renderDash()">'+
+      '<option value="effort" '+(c2.mode==='effort'?'selected':'')+'>% effort (chia đều theo số dự án)</option>'+
+      '<option value="head" '+(c2.mode==='head'?'selected':'')+'>Số lượt nhân sự (headcount)</option></select>'+
+    '<label class="f" style="margin-top:10px;"><input type="checkbox" style="width:auto;margin-right:6px;" '+(c2.showValues?'checked':'')+' onchange="S.chart2.showValues=this.checked;renderDash()">Hiện % trên biểu đồ tròn</label>'+
+    '<div class="row" style="margin-top:12px;"><select id="c2scale" class="fix" style="width:70px"><option value="2">2×</option><option value="3" selected>3×</option><option value="4">4×</option></select>'+
+    '<button class="btn primary small" onclick="exportChartPNG(2)">📷 Xuất PNG</button></div>'+
+    '<p class="hint">Biểu đồ tự cập nhật theo tick trong DS_TK_ALL. "FTE" = tổng effort quy đổi.</p>'+
+  '</div></div>';
+}
+function exportChartPNG(n){
+  const svg = n===1? buildChart1SVG() : buildChart2SVG();
+  const scale = +($(n===1?'#c1scale':'#c2scale').value||3);
+  const nm = n===1? S.chart1.title : S.chart2.title;
+  svgToPNG(svg, scale, safeName(nm)+'_'+scale+'x.png');
+}
+
+
+
+/* ================= FRESH ENGINEER ================= */
+function discBlockColor(disc){
+  const b = allBlocks().find(x=>x.disc===disc);
+  if(b) return b.color;
+  let h=0; for(const c of String(disc||'')) h+=c.charCodeAt(0);
+  return PALETTE[h%PALETTE.length];
+}
+function buildFreshChartSVG(){
+  const fresh=realPeople().filter(isFresh);
+  const by={};
+  fresh.forEach(p=>{ const d=p.disc||'(Chưa có discipline)'; (by[d]=by[d]||[]).push(p); });
+  const discs=Object.keys(by).sort((a,b)=>by[b].length-by[a].length);
+  const W=900, padL=64, padR=24, padT=56, padB=90, H=420;
+  const cw=W-padL-padR, ch=H-padT-padB;
+  const s=[];
+  s.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Arial, sans-serif">');
+  s.push('<rect width="'+W+'" height="'+H+'" fill="#FFFFFF"/>');
+  s.push('<rect x="0" y="0" width="'+W+'" height="5" fill="'+S.deColor+'"/>');
+  s.push(svgText(W/2, 30, 'FRESH ENGINEER THEO DISCIPLINE', 'text-anchor="middle" font-size="16.5" font-weight="bold" fill="'+S.titleColor+'"'));
+  if(!discs.length){ s.push(svgText(W/2, H/2, 'Chưa có Fresh Engineer nào (tick Trainee/Trainnee ở DS_TK_ALL)', 'text-anchor="middle" font-size="12.5" fill="#9AA2B4"')); s.push('</svg>'); return s.join('\n'); }
+  const maxV=Math.max(...discs.map(d=>by[d].length),1);
+  const step = maxV<=10?1: maxV<=25?5:10;
+  const yMax=Math.ceil(maxV/step)*step;
+  const bw=Math.min(70, cw/discs.length*0.6);
+  for(let v=0;v<=yMax;v+=step){
+    const y=padT+ch-ch*v/yMax;
+    s.push('<line x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'" stroke="#E1E7F3" stroke-width="1"/>');
+    s.push(svgText(padL-8, y+4, String(v), 'text-anchor="end" font-size="11" fill="#6B7488"'));
+  }
+  discs.forEach((d,i)=>{
+    const cx=padL + cw*(i+0.5)/discs.length;
+    const val=by[d].length;
+    const bh=ch*val/yMax, y=padT+ch-bh;
+    const col=discBlockColor(d);
+    s.push('<rect x="'+(cx-bw/2)+'" y="'+y+'" width="'+bw+'" height="'+bh+'" rx="4" fill="'+col+'"><title>'+esc(d+' ('+val+'): '+by[d].map(p=>p.name).join(', '))+'</title></rect>');
+    s.push(svgText(cx, y-7, String(val), 'text-anchor="middle" font-size="13" font-weight="bold" fill="'+col+'"'));
+    const lines=wrap(d, cw/discs.length-8, '11px Arial');
+    let yy=padT+ch+18; lines.slice(0,3).forEach(ln=>{ s.push(svgText(cx, yy, ln, 'text-anchor="middle" font-size="11" fill="#1a2333"')); yy+=13; });
+  });
+  s.push('</svg>');
+  return s.join('\n');
+}
+function renderFresh(){
+  const fresh=realPeople().filter(isFresh);
+  const host=$('#freshSummary'); if(!host) return;
+  host.innerHTML='<div class="fresh-grid"><div class="fresh-card"><div class="n">'+fresh.length+'</div><div class="l">Tổng Fresh Engineer</div></div></div>'+
+    '<div class="chart-card">'+buildFreshChartSVG()+'</div>';
+  let h='<table class="grid"><thead><tr><th>STT</th><th>MSNV</th><th>Họ và tên</th><th>Discipline</th><th>Chức danh</th><th>Email</th></tr></thead><tbody>';
+  fresh.slice().sort((a,b)=>String(a.disc||'').localeCompare(String(b.disc||''),'vi')||a.name.localeCompare(b.name,'vi')).forEach((p,i)=>{
+    h+='<tr><td class="rownum">'+(i+1)+'</td><td>'+esc(p.msnv)+'</td><td style="font-weight:bold;color:'+S.ceColor+'">'+esc(p.name)+'</td><td>'+esc(p.disc)+'</td><td>'+esc(p.title)+'</td><td>'+esc(p.email)+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  $('#freshTable').innerHTML=h;
+}
+
+/* ================= THỐNG KÊ CHỨC DANH (Leader/Senior/Junior/Fresher) ================= */
+const TIERS = ['Leader','Senior','Junior','Fresher'];
+function titleTier(p){
+  const t=String(p.title||'');
+  if(/^lead\b|leader|tổ trưởng|tổ phó/i.test(t)) return 'Leader';
+  if(/^senior\b/i.test(t)) return 'Senior';
+  if(/fresh/i.test(t) || isFresh(p)) return 'Fresher';
+  return 'Junior';   // Junior + các chức danh còn lại (Document Controller, ...)
+}
+function discColorOf(d){ const b=allBlocks().find(x=>x.disc===d); return b? b.color : discBlockColor(d); }
+/* Đậm nhất ở Leader → nhạt dần đến Fresher, cùng tông màu khối discipline */
+function tierShade(base,i){ return [shade(base,-0.28), base, shade(base,0.38), shade(base,0.64)][i]; }
+function titleStatsData(){
+  const by={};   // disc -> {Leader:[names], Senior:[], Junior:[], Fresher:[]}
+  realPeople().forEach(p=>{
+    const d=p.disc||'(Chưa có discipline)';
+    if(!by[d]) by[d]={Leader:[],Senior:[],Junior:[],Fresher:[]};
+    by[d][titleTier(p)].push(p.name);
+  });
+  const order = allBlocks().map(b=>b.disc);
+  const discs = Object.keys(by).sort((a,b)=>{
+    const ia=order.indexOf(a), ib=order.indexOf(b);
+    return (ia<0?999:ia)-(ib<0?999:ib) || a.localeCompare(b,'vi');
+  });
+  return {by, discs};
+}
+function buildTitleBarSVG(){
+  const {by,discs}=titleStatsData();
+  const groupW=118;
+  const W=Math.max(900, 70+discs.length*groupW+24), padL=52, padR=20, padT=88, padB=96;
+  const H=430, cw=W-padL-padR, ch=H-padT-padB;
+  const s=[];
+  s.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Arial, sans-serif">');
+  s.push('<rect width="'+W+'" height="'+H+'" fill="#FFFFFF"/>');
+  s.push('<rect x="0" y="0" width="'+W+'" height="5" fill="'+S.deColor+'"/>');
+  s.push(svgText(W/2, 30, 'CHỨC DANH THEO DISCIPLINE', 'text-anchor="middle" font-size="16.5" font-weight="bold" fill="'+S.titleColor+'"'));
+  s.push(svgText(W/2, 50, '(màu theo khối discipline trên sơ đồ — đậm nhất: Leader, nhạt dần đến Fresher · không tính vị trí TBA)', 'text-anchor="middle" font-size="11" fill="#6B7488"'));
+  // chú giải mức đậm/nhạt (tông trung tính minh họa)
+  let lx=W/2- (TIERS.length*86)/2;
+  TIERS.forEach((t,i)=>{
+    s.push('<rect x="'+lx+'" y="'+62+'" width="12" height="12" rx="2" fill="'+tierShade('#5B6B8C',i)+'"/>');
+    s.push(svgText(lx+17, 72, t, 'font-size="11" font-weight="bold" fill="#1a2333"'));
+    lx+=86;
+  });
+  if(!discs.length){ s.push(svgText(W/2, H/2, 'Chưa có dữ liệu nhân sự', 'text-anchor="middle" font-size="12.5" fill="#9AA2B4"')); s.push('</svg>'); return s.join('\n'); }
+  const maxV=Math.max(1, ...discs.map(d=>Math.max(...TIERS.map(t=>by[d][t].length))));
+  const step = maxV<=10?1: maxV<=25?5:10;
+  const yMax=Math.ceil(maxV/step)*step;
+  for(let v=0;v<=yMax;v+=step){
+    const y=padT+ch-ch*v/yMax;
+    s.push('<line x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'" stroke="#E1E7F3" stroke-width="1"/>');
+    s.push(svgText(padL-8, y+4, String(v), 'text-anchor="end" font-size="11" fill="#6B7488"'));
+  }
+  const gw=cw/discs.length, bw=Math.min(20, gw*0.19);
+  discs.forEach((d,di)=>{
+    const gx=padL+gw*di+gw/2;
+    const base=discColorOf(d);
+    TIERS.forEach((t,ti)=>{
+      const val=by[d][t].length;
+      const x=gx+(ti-1.5)*(bw+3)-bw/2;
+      const bh=ch*val/yMax, y=padT+ch-bh;
+      const col=tierShade(base,ti);
+      if(val>0){
+        s.push('<rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+Math.max(bh,2)+'" rx="2.5" fill="'+col+'"><title>'+esc(d+' – '+t+' ('+val+'): '+by[d][t].join(', '))+'</title></rect>');
+        s.push(svgText(x+bw/2, y-5, String(val), 'text-anchor="middle" font-size="10.5" font-weight="bold" fill="'+col+'"'));
+      } else {
+        s.push('<rect x="'+x+'" y="'+(padT+ch-2)+'" width="'+bw+'" height="2" rx="1" fill="'+shade(base,0.8)+'"/>');
+      }
+    });
+    const lines=wrap(d, gw-10, '11px Arial');
+    let yy=padT+ch+18; lines.slice(0,3).forEach(ln=>{ s.push(svgText(gx, yy, ln, 'text-anchor="middle" font-size="11" font-weight="bold" fill="'+base+'"')); yy+=13; });
+    const tot=TIERS.reduce((a,t)=>a+by[d][t].length,0);
+    s.push(svgText(gx, yy+2, tot+' người', 'text-anchor="middle" font-size="10" fill="#6B7488"'));
+  });
+  s.push('</svg>');
+  return s.join('\n');
+}
+function buildTitleDonutSVG(){
+  const rp=realPeople();
+  const counts=TIERS.map(t=>({t, list:rp.filter(p=>titleTier(p)===t).map(p=>p.name)}));
+  const total=rp.length||1;
+  const W=560, H=330, cx=170, cy=178, R=100, r=56;
+  const s=[];
+  s.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Arial, sans-serif">');
+  s.push('<rect width="'+W+'" height="'+H+'" fill="#FFFFFF"/>');
+  s.push('<rect x="0" y="0" width="'+W+'" height="5" fill="'+S.deColor+'"/>');
+  s.push(svgText(W/2, 30, 'TỔ THIẾT KẾ THEO CẤP CHỨC DANH', 'text-anchor="middle" font-size="15.5" font-weight="bold" fill="'+S.titleColor+'"'));
+  s.push(svgText(W/2, 48, '(toàn bộ tổ thiết kế — không tính vị trí TBA)', 'text-anchor="middle" font-size="11" fill="#6B7488"'));
+  let a0=-Math.PI/2;
+  counts.forEach((c,i)=>{
+    const frac=c.list.length/total;
+    if(frac<=0) return;
+    const a1=a0+frac*2*Math.PI, large=frac>0.5?1:0;
+    const eps = frac>=1? 0.0001 : 0;   // vẽ trọn vòng nếu 100%
+    const x0=cx+R*Math.cos(a0), y0=cy+R*Math.sin(a0), x1=cx+R*Math.cos(a1-eps), y1=cy+R*Math.sin(a1-eps);
+    const xi=cx+r*Math.cos(a1-eps), yi=cy+r*Math.sin(a1-eps), xi0=cx+r*Math.cos(a0), yi0=cy+r*Math.sin(a0);
+    const col=tierShade(S.titleColor,i);
+    s.push('<path d="M '+x0+' '+y0+' A '+R+' '+R+' 0 '+large+' 1 '+x1+' '+y1+' L '+xi+' '+yi+' A '+r+' '+r+' 0 '+large+' 0 '+xi0+' '+yi0+' Z" fill="'+col+'" stroke="#fff" stroke-width="1.5"><title>'+esc(c.t+' ('+c.list.length+'): '+c.list.join(', '))+'</title></path>');
+    if(frac>0.045){
+      const am=(a0+a1)/2, tx=cx+(R+r)/2*Math.cos(am), ty=cy+(R+r)/2*Math.sin(am);
+      s.push(svgText(tx, ty+4, String(c.list.length), 'text-anchor="middle" font-size="12" font-weight="bold" fill="#FFFFFF"'));
+    }
+    a0=a1;
+  });
+  s.push(svgText(cx, cy-2, String(rp.length), 'text-anchor="middle" font-size="24" font-weight="bold" fill="'+S.titleColor+'"'));
+  s.push(svgText(cx, cy+16, 'nhân sự', 'text-anchor="middle" font-size="11" fill="#6B7488"'));
+  let ly=95;
+  counts.forEach((c,i)=>{
+    const col=tierShade(S.titleColor,i);
+    s.push('<rect x="320" y="'+(ly-10)+'" width="13" height="13" rx="2" fill="'+col+'"/>');
+    s.push(svgText(340, ly+1, c.t+': '+c.list.length+' người ('+(c.list.length/total*100).toFixed(1)+'%)', 'font-size="12" font-weight="bold" fill="#1a2333"'));
+    ly+=28;
+  });
+  s.push('</svg>');
+  return s.join('\n');
+}
+function renderTitleStats(){
+  const host=$('#titleStats'); if(!host) return;
+  const rp=realPeople();
+  const cnt=t=>rp.filter(p=>titleTier(p)===t).length;
+  host.innerHTML =
+    '<div class="kpis">'+
+      '<div class="kpi"><div class="n">'+cnt('Leader')+'</div><div class="l">Leader</div></div>'+
+      '<div class="kpi"><div class="n">'+cnt('Senior')+'</div><div class="l">Senior</div></div>'+
+      '<div class="kpi"><div class="n">'+cnt('Junior')+'</div><div class="l">Junior (gồm chức danh khác)</div></div>'+
+      '<div class="kpi green"><div class="n">'+cnt('Fresher')+'</div><div class="l">Fresher (tick Trainee hoặc chức danh Fresher)</div></div>'+
+    '</div>'+
+    '<div class="chart-card">'+buildTitleBarSVG()+'</div>'+
+    '<div class="chart-card">'+buildTitleDonutSVG()+'</div>';
+}
+
+/* ================= MAN-HOUR MODULE ================= */
+const MH_REFERENCE_ROWS = [["Site Survey / Verification", "Site Survey", 0, null], ["Project MGT", "Project MGT", 10745, null], ["Engineering MGT", "Engineering MGT", 2636, null], ["Update / Mark-up Drawings", "Mark-up Drawings", 0, null], ["Process", "Process", 6063, 2304], ["Piping", "Piping", 12375, 3456], ["Instrumentation & Control", "Instrum. & Ctrl", 3914, 1152], ["Telecommunication", "Telecom", 1185, 2304], ["Electrical", "Electrical", 4885, 1152], ["Structural & civil", "Structural & Civil", 11470, 3456], ["Safety Studies, LP & Environmental", "Safety, LP & Env.", 3338, 2304], ["Mechanical", "Mechanical", 3707, 2304], ["Interfaces / Hook-up / Tie-ins", "Hook-up / Tie-ins", 0, 0], ["Material corrosion", "Material Corrosion", 165, 0], ["Construction & Installation", "Constr. & Install.", 1089, 1152], ["Other (3D model)", "3D Model", null, 4608], ["Follow-on engineering (6% of man hours)", "Follow-on Eng. (6%)", null, 4032], ["Technical bid evaluation (TBE) (3.3% of man hours)", "TBE (3.3%)", null, 1920], ["As-build engineer (5.2% of man hours)", "As-built Eng. (5.2%)", null, 2822.4]];
+let currentMH='staff';
+function ensureMH(){
+  S.mhAssign=S.mhAssign||{}; S.mhCfg=S.mhCfg||{};
+  const cfg=S.mhCfg;
+  cfg.title=cfg.title||'IMA — Engineering Man-hours by Discipline / Activity';
+  cfg.nameSubDE=cfg.nameSubDE||'IMA Sub DE Total MH';
+  cfg.nameActualPOS=cfg.nameActualPOS||'MHR of POS thực tế từ DS_TK_ALL';
+  cfg.colorSubDE=cfg.colorSubDE||'#2E75B6'; cfg.colorActualPOS=cfg.colorActualPOS||'#2E9E5B';
+  cfg.axisMode=cfg.axisMode||'short45'; cfg.showValues=cfg.showValues!==false; cfg.showLegend=cfg.showLegend!==false; cfg.showPostedPOS=false;
+  const actual=realPeople().filter(canPrio);
+  actual.forEach(p=>{
+    if(!S.mhAssign[p.id]) S.mhAssign[p.id]=defaultMHAssign(p);
+    const a=S.mhAssign[p.id];
+    if(!a.activity) a.activity=activityFromPerson(p);
+    const autoTitle=defaultMHRTitle(p);
+    if(!a.titleManual) a.mhrTitle=autoTitle;
+    if(!a.mhrTitle) a.mhrTitle=autoTitle;
+    if(a.duration==null) a.duration=3;
+    if(a.workdays==null) a.workdays=24;
+    if(a.hours==null) a.hours=8;
+    if(a.fte==null) a.fte=1;
+  });
+  Object.keys(S.mhAssign).forEach(id=>{ if(!actual.some(p=>p.id===id)) delete S.mhAssign[id]; });
+}
+function defaultMHAssign(p){ return {mhrTitle:defaultMHRTitle(p), titleManual:false, activity:activityFromPerson(p), duration:3, workdays:24, hours:8, fte:1}; }
+function cleanDiscName(p){
+  const text=(p.disc||'').toLowerCase();
+  if(/telecom/.test(text)) return 'Telecommunication';
+  if(/instrument|i&t/.test(text)) return 'Instrumentation & Control';
+  if(/elect/.test(text)) return 'Electrical';
+  if(/struct|civil/.test(text)) return 'Structural';
+  if(/pipe|piping/.test(text)) return 'Piping';
+  if(/process/.test(text)) return 'Process';
+  if(/mechanical/.test(text)) return 'Mechanical';
+  if(/lifting|scaffold|naval|construction|installation/.test(text)) return 'Construction & Installation';
+  if(/pmt|coordinat|manager/.test(text)) return 'Engineering MGT';
+  return p.disc||'Engineering';
+}
+function titleDisciplineName(p){
+  const d=cleanDiscName(p);
+  if(d==='Structural & civil') return 'Structural';
+  if(d==='Construction & Installation') return 'Construction';
+  if(d==='Engineering MGT') return 'Engineering Management';
+  return d;
+}
+function defaultMHRTitle(p){
+  const d=titleDisciplineName(p);
+  const senior = isLeadPerson(p)||/senior|cấp cao/i.test(p.title||'');
+  return (senior ? 'Senior ' : '') + d + ' Engineer';
+}
+function activityFromPerson(p){
+  const text=((p.disc||'')+' '+(p.title||'')).toLowerCase();
+  if(/pmt|coordinat|tổ trưởng|tổ phó/.test(text)) return 'Engineering MGT';
+  if(/process/.test(text)) return 'Process';
+  if(/pipe|piping|pipeline/.test(text)) return 'Piping';
+  if(/telecom/.test(text)) return 'Telecommunication';
+  if(/instrument|i&t/.test(text)) return 'Instrumentation & Control';
+  if(/elect|elech/.test(text)) return 'Electrical';
+  if(/struct|civil/.test(text)) return 'Structural & civil';
+  if(/mechanical/.test(text)) return 'Mechanical';
+  if(/lifting|scaffold|naval|construction|installation/.test(text)) return 'Construction & Installation';
+  return 'Engineering MGT';
+}
+function mhVal(a){ return (+a.duration||0)*(+a.workdays||0)*(+a.hours||0)*(+a.fte||0); }
+function mhActualRows(){ ensureMH(); return realPeople().filter(canPrio).map(p=>({p,a:S.mhAssign[p.id], mh:mhVal(S.mhAssign[p.id])})).sort((x,y)=>String(x.p.disc||'').localeCompare(String(y.p.disc||''),'vi')||x.p.name.localeCompare(y.p.name,'vi')); }
+function mhSummary(){
+  ensureMH();
+  const sums={}; mhActualRows().forEach(r=>{ sums[r.a.activity]=(sums[r.a.activity]||0)+r.mh; });
+  return MH_REFERENCE_ROWS.map(r=>({name:r[0], axis:r[1], subde:r[2], posted:r[3], actual:sums[r[0]]||0}));
+}
+function fmtMH(v){ return v==null||v==='' ? '' : Number(v).toLocaleString('en-US',{maximumFractionDigits:1}); }
+function showMH(v){ currentMH=v; $$('.mh-view').forEach(x=>x.classList.remove('active')); $('#mh-'+v).classList.add('active'); $$('.mh-tabs button').forEach(b=>b.classList.toggle('active', b.dataset.mh===v)); renderManhour(); }
+function updateMH(id,k,v){ ensureMH(); if(!S.mhAssign[id]) return; if(['duration','workdays','hours','fte'].includes(k)) S.mhAssign[id][k]=Number(v)||0; else { S.mhAssign[id][k]=v; if(k==='mhrTitle') S.mhAssign[id].titleManual=true; } renderManhour(); }
+function renderManhour(){
+  if(!$('#main-manhour')) return;
+  ensureMH();
+  const rows=mhActualRows(), sum=mhSummary();
+  const totalActual=rows.reduce((s,r)=>s+r.mh,0), totalSub=sum.reduce((s,r)=>s+(r.subde||0),0);
+  $('#mhKpis').innerHTML='<div class="mh-kpi"><div class="n">'+rows.length+'</div><div class="l">Nhân sự IMA thực tế (tick IMA trong DS_TK_ALL)</div></div>'+ 
+    '<div class="mh-kpi green"><div class="n">'+fmtMH(totalActual)+'</div><div class="l">MHR of POS thực tế tính từ duration × workday × hour/day × FTE</div></div>'+ 
+    '<div class="mh-kpi"><div class="n">'+fmtMH(totalSub)+'</div><div class="l">IMA Sub DE Total MH</div></div>';
+  if(currentMH==='staff') renderMHStaff(rows);
+  if(currentMH==='mhr') renderMHSummary(sum);
+  if(currentMH==='chart') $('#mhChart').innerHTML=buildManhourSVG();
+  renderMHPanel();
+}
+function renderMHStaff(rows){
+  const acts=MH_REFERENCE_ROWS.map(r=>r[0]);
+  let h='<table class="grid"><thead><tr><th>STT</th><th>MSNV</th><th>Họ và tên</th><th>Discipline</th><th>Chức danh từ DS_TK_ALL</th><th style="min-width:220px">Chức danh MHR theo công thức</th><th style="min-width:220px">Activity / Discipline của MHR</th><th>Duration<br>months</th><th>Workday<br>/month</th><th>Hour<br>/day</th><th>FTE</th><th>MH</th></tr></thead><tbody>';
+  rows.forEach((r,i)=>{
+    const p=r.p,a=r.a;
+    h+='<tr><td class="rownum">'+(i+1)+'</td><td>'+esc(p.msnv)+'</td><td style="font-weight:bold;color:'+S.deColor+'">'+esc(p.name)+'</td><td>'+esc(p.disc)+'</td><td>'+esc(p.title||'')+'</td>'+ 
+      '<td><input type="text" value="'+esc(a.mhrTitle)+'" onchange="updateMH(\''+p.id+'\',\'mhrTitle\',this.value)"></td>'+ 
+      '<td><select onchange="updateMH(\''+p.id+'\',\'activity\',this.value)">'+acts.map(x=>'<option '+(x===a.activity?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select></td>'+ 
+      '<td><input class="mini-input" type="number" step="0.1" value="'+a.duration+'" onchange="updateMH(\''+p.id+'\',\'duration\',this.value)"></td>'+ 
+      '<td><input class="mini-input" type="number" step="0.5" value="'+a.workdays+'" onchange="updateMH(\''+p.id+'\',\'workdays\',this.value)"></td>'+ 
+      '<td><input class="mini-input" type="number" step="0.5" value="'+a.hours+'" onchange="updateMH(\''+p.id+'\',\'hours\',this.value)"></td>'+ 
+      '<td><input class="mini-input" type="number" step="0.05" value="'+a.fte+'" onchange="updateMH(\''+p.id+'\',\'fte\',this.value)"></td>'+ 
+      '<td style="font-weight:bold;text-align:right">'+fmtMH(r.mh)+'</td></tr>';
+  });
+  h+='</tbody></table>';
+  $('#mhStaffTable').innerHTML=h;
+}
+function renderMHSummary(sum){
+  let h='<table class="grid"><thead><tr><th>No.</th><th style="min-width:260px">Activity / Discipline</th><th>Tên trên trục</th><th class="proj">IMA Sub DE<br>Total MH</th><th class="proj">MHR of POS<br>thực tế</th></tr></thead><tbody>';
+  sum.forEach((r,i)=>{ h+='<tr><td class="rownum">'+(i+1)+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.axis)+'</td><td class="comp-sub" style="text-align:right">'+fmtMH(r.subde)+'</td><td class="comp-act" style="text-align:right">'+fmtMH(r.actual)+'</td></tr>'; });
+  const t=(k)=>sum.reduce((s,r)=>s+(r[k]||0),0);
+  h+='<tr class="totals"><td colspan="3">TOTAL</td><td>'+fmtMH(t('subde'))+'</td><td>'+fmtMH(t('actual'))+'</td></tr></tbody></table>';
+  $('#mhSummaryTable').innerHTML=h;
+}
+function renderMHPanel(){
+  const c=S.mhCfg;
+  $('#mhPanel').innerHTML='<h3>Tuỳ chỉnh Man-hour chart</h3>'+ 
+    '<label class="f">Tiêu đề chart</label><input class="mh-title-input" value="'+esc(c.title)+'" oninput="S.mhCfg.title=this.value;renderManhour()">'+ 
+    '<label class="f">Tên chuỗi 1</label><input type="text" value="'+esc(c.nameSubDE)+'" onchange="S.mhCfg.nameSubDE=this.value;renderManhour()">'+ 
+    '<label class="f">Tên chuỗi 2</label><input type="text" value="'+esc(c.nameActualPOS)+'" onchange="S.mhCfg.nameActualPOS=this.value;renderManhour()">'+ 
+    '<div class="row"><div><label class="f">Màu Sub DE</label><input type="color" value="'+c.colorSubDE+'" onchange="S.mhCfg.colorSubDE=this.value;renderManhour()"></div><div><label class="f">Màu MHR thực tế</label><input type="color" value="'+c.colorActualPOS+'" onchange="S.mhCfg.colorActualPOS=this.value;renderManhour()"></div></div>'+ 
+    '<label class="f">Trục hoành</label><select onchange="S.mhCfg.axisMode=this.value;renderManhour()"><option value="short45" '+(c.axisMode==='short45'?'selected':'')+'>Tên rút gọn – xoay 45°</option><option value="num" '+(c.axisMode==='num'?'selected':'')+'>Số 1-19</option><option value="full45" '+(c.axisMode==='full45'?'selected':'')+'>Tên đầy đủ – xoay 45°</option></select>'+ 
+    '<label class="f"><input type="checkbox" style="width:auto;margin-right:6px" '+(c.showValues?'checked':'')+' onchange="S.mhCfg.showValues=this.checked;renderManhour()">Hiện số liệu trên cột</label>'+ 
+    '<label class="f"><input type="checkbox" style="width:auto;margin-right:6px" '+(c.showLegend?'checked':'')+' onchange="S.mhCfg.showLegend=this.checked;renderManhour()">Hiện legend</label>'+ 
+    '<p class="hint">MHR thực tế tự tính từ bảng nhân sự IMA thực tế. Thay đổi tick IMA trong DS_TK_ALL sẽ thêm/xoá người ở tab này.</p>';
+}
+function buildManhourSVG(){
+  ensureMH(); const c=S.mhCfg, rows=mhSummary();
+  const W=1180,H=620,pL=70,pR=28,pT=72,pB=145,cw=W-pL-pR,ch=H-pT-pB;
+  const series=[{name:c.nameSubDE,color:c.colorSubDE,key:'subde'},{name:c.nameActualPOS,color:c.colorActualPOS,key:'actual'}];
+  const vals=[]; rows.forEach(r=>series.forEach(s=>{ if(r[s.key]!=null) vals.push(r[s.key]); })); const maxV=Math.max(...vals,1); const yMax=Math.ceil(maxV/2000)*2000||2000;
+  const slot=cw/rows.length, groupW=Math.min(48,slot*.7), bw=groupW/series.length;
+  const s=[]; s.push('<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Arial, sans-serif">'); s.push('<rect width="'+W+'" height="'+H+'" fill="#FFFFFF"/><rect x="0" y="0" width="'+W+'" height="6" fill="'+S.deColor+'"/>');
+  s.push(svgText(W/2,32,c.title,'text-anchor="middle" font-size="18" font-weight="bold" fill="'+S.titleColor+'"'));
+  if(c.showLegend){ let lx=pL, ly=55; series.forEach(sr=>{s.push('<rect x="'+lx+'" y="'+(ly-11)+'" width="13" height="13" rx="2" fill="'+sr.color+'"/>'); s.push(svgText(lx+18,ly,sr.name,'font-size="11.5" font-weight="bold" fill="#1a2333"')); lx+=22+tw(sr.name,'bold 11.5px Arial')+20;}); }
+  for(let v=0; v<=yMax; v+=2000){ const y=pT+ch-ch*v/yMax; s.push('<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="#E1E7F3"/>'); s.push(svgText(pL-8,y+4,fmtMH(v),'text-anchor="end" font-size="10.5" fill="#6B7488"')); }
+  rows.forEach((r,i)=>{ const cx=pL+slot*(i+.5); series.forEach((sr,j)=>{ const v=r[sr.key]; if(v==null) return; const bh=ch*v/yMax, x=cx-groupW/2+j*bw, y=pT+ch-bh; s.push('<rect x="'+x+'" y="'+y+'" width="'+Math.max(2,bw-2)+'" height="'+bh+'" rx="2" fill="'+sr.color+'"><title>'+esc(r.name+' — '+sr.name+': '+fmtMH(v)+' MH')+'</title></rect>'); if(c.showValues&&v>0) s.push(svgText(x+bw/2,y-5,fmtMH(v),'text-anchor="middle" font-size="9" font-weight="bold" fill="'+sr.color+'" transform="rotate(-70 '+(x+bw/2)+' '+(y-5)+')"')); });
+    const ly=pT+ch+18; let label=c.axisMode==='num'?String(i+1):(c.axisMode==='full45'?(i+1)+'. '+r.name:(i+1)+'. '+r.axis); s.push('<text x="'+cx+'" y="'+ly+'" font-size="10.5" fill="#1a2333" text-anchor="end" transform="rotate(-45 '+cx+' '+ly+')">'+esc(label)+'</text>'); });
+  s.push('<text x="18" y="'+(pT+ch/2)+'" font-size="12" font-weight="bold" fill="#6B7488" text-anchor="middle" transform="rotate(-90 18 '+(pT+ch/2)+')">Man-hours (MH)</text>');
+  s.push('</svg>'); return s.join('\n');
+}
+function exportManhourPNG(){ ensureMH(); svgToPNG(buildManhourSVG(),3,safeName(S.mhCfg.title||'manhour_chart')+'_3x.png'); }
+
+/* ================= INIT ================= */
+renderAll();
+
+</script>
+<script>
+
+/* ================= SIMPLE SCHEDULE (IMA / MM3) ================= */
+let currentSchedule='ima';
+function sdParse(s){ if(!s) return null; const a=String(s).split('-').map(Number); return new Date(a[0],a[1]-1,a[2]||1); }
+function sdISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function sdAddMonths(d,n){ return new Date(d.getFullYear(), d.getMonth()+n, 1); }
+function sdMonthDiff(a,b){ return (b.getFullYear()-a.getFullYear())*12 + (b.getMonth()-a.getMonth()); }
+function sdDaysInMonth(d){ return new Date(d.getFullYear(), d.getMonth()+1, 0).getDate(); }
+function sdFmt(s){ const d=sdParse(s); if(!d) return '—'; const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]; return String(d.getDate()).padStart(2,'0')+' '+mo+' \' '+String(d.getFullYear()).slice(2); }
+function sdFmtRange(a,b){ return sdFmt(a)+' → '+sdFmt(b); }
+function sdDays(a,b){ const da=sdParse(a), db=sdParse(b); if(!da||!db) return 0; return Math.max(1, Math.round((db-da)/86400000)+1); }
+function sdEsc(s){ return esc(s); }
+function sdStartMonth(proj){ const d=sdParse(proj.start); return new Date(d.getFullYear(),d.getMonth(),1); }
+function sdMonthList(proj){ const a=sdStartMonth(proj), b=sdParse(proj.end); const n=sdMonthDiff(a,new Date(b.getFullYear(),b.getMonth(),1))+1; return Array.from({length:n},(_,i)=>sdAddMonths(a,i)); }
+function sdX(dateStr,startMonth,colW,labelW){ const d=sdParse(dateStr); if(!d) return labelW; const m=new Date(d.getFullYear(),d.getMonth(),1); const frac=(d.getDate()-1)/sdDaysInMonth(d); return labelW + (sdMonthDiff(startMonth,m)+frac)*colW; }
+function showSchedule(k){ currentSchedule=k; $$('.schedule-tabs button').forEach(b=>b.classList.toggle('active', b.dataset.sch===k)); renderSchedule(); }
+function activeSchedule(){ S.schedules=S.schedules||defaultSchedules(); return S.schedules[currentSchedule] || S.schedules.ima || defaultSchedules().ima; }
+function renderSchedule(){
+  const host=$('#scheduleCard'); if(!host) return;
+  const proj=activeSchedule();
+  const svg=buildScheduleSVG(proj);
+  host.innerHTML='<div class="schedule-svg-wrap">'+svg+'</div>'+buildScheduleEditTable(proj);
+}
+function scheduleBarColor(r){ return r.color || discBlockColor(r.label) || '#2E75B6'; }
+function computeMilestoneLanes(ms, startM, colW, labelW){
+  const items = ms.map((m,idx)=>({idx, x:sdX(m.date,startM,colW,labelW), w: Math.max(tw(m.label,'bold 10.8px Arial'), tw(sdFmt(m.date),'9.5px Arial'))+16}));
+  items.sort((a,b)=>a.x-b.x);
+  const laneEnds=[];
+  items.forEach(it=>{
+    let lane=0;
+    while(lane<laneEnds.length && laneEnds[lane]!=null && (it.x-laneEnds[lane])<18) lane++;
+    if(lane>=laneEnds.length) laneEnds.push(null);
+    laneEnds[lane]=it.x+it.w;
+    it.lane=lane;
+  });
+  const laneOf={}; items.forEach(it=>laneOf[it.idx]=it.lane);
+  return {laneOf, laneCount:Math.max(1,laneEnds.length)};
+}
+function buildScheduleSVG(proj){
+  const months=sdMonthList(proj), colW=48, labelW=255, rightPad=40, top=118;
+  const rowH=42, bars=proj.bars||[], ms=proj.milestones||[];
+  const W=labelW+months.length*colW+rightPad;
+  const startM=sdStartMonth(proj);
+  const lanePitch=34;
+  const laneInfo=computeMilestoneLanes(ms, startM, colW, labelW);
+  const msH=Math.max(60, 22+laneInfo.laneCount*lanePitch);
+  const H=top+msH+bars.length*rowH+58;
+  const s=[];
+  const mNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  s.push('<svg id="scheduleSvg" xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" font-family="Arial, sans-serif">');
+  s.push('<defs><linearGradient id="barShine" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.28"/><stop offset="0.52" stop-color="#FFFFFF" stop-opacity="0.04"/><stop offset="1" stop-color="#000000" stop-opacity="0.10"/></linearGradient></defs>');
+  s.push('<rect width="'+W+'" height="'+H+'" fill="#FFFFFF"/>');
+  s.push('<rect x="0" y="0" width="'+W+'" height="7" fill="'+S.deColor+'"/><rect x="0" y="7" width="'+W+'" height="2" fill="'+S.titleColor+'"/>');
+  s.push(svgText(W/2,34,proj.title||'SCHEDULE','text-anchor="middle" font-size="22" font-weight="bold" fill="'+S.titleColor+'" letter-spacing=".8"'));
+  s.push(svgText(W/2,56,proj.subtitle||'','text-anchor="middle" font-size="11.5" fill="#6B7488" letter-spacing="1.6"'));
+  s.push(svgText(labelW,82,'Timeline: '+sdFmt(proj.start)+' → '+sdFmt(proj.end),'font-size="12" font-weight="bold" fill="#6B7488"'));
+  s.push(svgText(W-rightPad,82,'No manpower / headcount shown','text-anchor="end" font-size="11" fill="#9AA2B4"'));
+  // Header rows
+  const yYear=92, yMonth=118;
+  s.push('<rect x="0" y="'+yYear+'" width="'+labelW+'" height="52" fill="'+S.titleColor+'"/>');
+  s.push(svgText(16,yYear+32,'DISCIPLINE / MILESTONE','font-size="12" font-weight="bold" fill="#FFFFFF" letter-spacing=".8"'));
+  let i=0;
+  while(i<months.length){ const yr=months[i].getFullYear(); let j=i; while(j<months.length && months[j].getFullYear()===yr) j++; const x=labelW+i*colW, w=(j-i)*colW; s.push('<rect x="'+x+'" y="'+yYear+'" width="'+w+'" height="24" fill="'+S.titleColor+'" stroke="#FFFFFF" stroke-opacity=".28"/>'); s.push(svgText(x+w/2,yYear+17,String(yr),'text-anchor="middle" font-size="13" font-weight="bold" fill="#FFFFFF"')); i=j; }
+  months.forEach((m,idx)=>{ const x=labelW+idx*colW; s.push('<rect x="'+x+'" y="'+(yYear+24)+'" width="'+colW+'" height="28" fill="#F0F4FC" stroke="#D9E2F1"/>'); s.push(svgText(x+colW/2,yYear+42,mNames[m.getMonth()],'text-anchor="middle" font-size="10.5" font-weight="bold" fill="#52627A"')); });
+  const bodyY=yYear+52;
+  // Grid background
+  const totalBodyH=msH+bars.length*rowH;
+  s.push('<rect x="0" y="'+bodyY+'" width="'+W+'" height="'+totalBodyH+'" fill="#F7FAFE"/>');
+  months.forEach((m,idx)=>{ const x=labelW+idx*colW; const stroke=m.getMonth()===0?'#BFCBE2':'#E1E7F3'; s.push('<line x1="'+x+'" y1="'+bodyY+'" x2="'+x+'" y2="'+(bodyY+totalBodyH)+'" stroke="'+stroke+'"/>'); });
+  s.push('<line x1="'+(labelW+months.length*colW)+'" y1="'+bodyY+'" x2="'+(labelW+months.length*colW)+'" y2="'+(bodyY+totalBodyH)+'" stroke="#BFCBE2"/>');
+  // Milestone row
+  s.push('<rect x="0" y="'+bodyY+'" width="'+labelW+'" height="'+msH+'" fill="#E9EEF9" stroke="#FFFFFF"/>');
+  s.push(svgText(16,bodyY+28,'KEY MILESTONES','font-size="13" font-weight="bold" fill="'+S.titleColor+'"'));
+  s.push(svgText(16,bodyY+48,'Các mốc chính của dự án','font-size="10.5" fill="#6B7488"'));
+  ms.forEach((m,idx)=>{ const x=sdX(m.date,startM,colW,labelW), lane=laneInfo.laneOf[idx]||0, y=bodyY+22+lane*lanePitch; const c=m.color||S.deColor; s.push('<g><title>'+sdEsc(m.label)+' — '+sdFmt(m.date)+'</title>'); s.push('<rect x="'+(x-6)+'" y="'+(y-6)+'" width="12" height="12" transform="rotate(45 '+x+' '+y+')" fill="'+c+'"/>'); const anchor=(x>W-280)?'end':'start'; const tx=anchor==='end'?x-12:x+12; s.push(svgText(tx,y+4,m.label,'text-anchor="'+anchor+'" font-size="10.8" font-weight="bold" fill="#1a2333"')); s.push(svgText(tx,y+18,sdFmt(m.date),'text-anchor="'+anchor+'" font-size="9.5" fill="#6B7488"')); s.push('</g>'); });
+  // Bar rows
+  bars.forEach((r,idx)=>{ const y=bodyY+msH+idx*rowH; const bg=idx%2?'#FFFFFF':'#FBFCFE'; s.push('<rect x="0" y="'+y+'" width="'+W+'" height="'+rowH+'" fill="'+bg+'"/>'); s.push('<rect x="0" y="'+y+'" width="'+labelW+'" height="'+rowH+'" fill="#FFFFFF" stroke="#E1E7F3"/>'); s.push(svgText(16,y+18,r.label,'font-size="12" font-weight="bold" fill="'+S.titleColor+'"')); s.push(svgText(16,y+34,sdFmtRange(r.start,r.end),'font-size="10.2" fill="#6B7488"')); const x1=sdX(r.start,startM,colW,labelW), x2=sdX(r.end,startM,colW,labelW)+5; const bw=Math.max(8,x2-x1), bh=24, by=y+9, col=scheduleBarColor(r); s.push('<g><title>'+sdEsc(r.label)+' — '+sdFmtRange(r.start,r.end)+' · '+sdDays(r.start,r.end)+' days</title>'); s.push('<rect x="'+x1+'" y="'+by+'" width="'+bw+'" height="'+bh+'" rx="6" fill="'+col+'"/>'); s.push('<rect x="'+x1+'" y="'+by+'" width="'+bw+'" height="'+bh+'" rx="6" fill="url(#barShine)"/>'); if(bw>92){ s.push(svgText(x1+bw/2,by+16,sdDays(r.start,r.end)+' d','text-anchor="middle" font-size="10.5" font-weight="bold" fill="#FFFFFF"')); } const outX=Math.min(W-rightPad-4,x1+bw+8); s.push(svgText(outX,by+16,r.label,'font-size="10.8" font-weight="bold" fill="#1a2333"')); s.push('</g>'); });
+  // Footer legend
+  const fy=H-28; s.push('<rect x="16" y="'+(fy-13)+'" width="12" height="12" rx="2" fill="'+S.deColor+'"/><text x="34" y="'+(fy-3)+'" font-size="11" fill="#6B7488">Milestone</text>'); s.push('<rect x="124" y="'+(fy-13)+'" width="18" height="12" rx="3" fill="#2E75B6"/><text x="150" y="'+(fy-3)+'" font-size="11" fill="#6B7488">Discipline / work unit duration</text>');
+  s.push('</svg>'); return s.join('\n');
+}
+function scheduleTypeSelectHTML(k,type,i){
+  return '<select onchange="changeScheduleRowType(\''+k+'\',\''+type+'\','+i+',this.value)">'+
+    '<option value="milestones" '+(type==='milestones'?'selected':'')+'>Milestone</option>'+
+    '<option value="bars" '+(type==='bars'?'selected':'')+'>Bar</option></select>';
+}
+function buildScheduleEditTable(proj){
+  const k=currentSchedule;
+  let h='<div class="sched-edit-wrap"><div class="sched-edit-title"><span>Dữ liệu schedule — có thể chỉnh trực tiếp, chart tự cập nhật</span><span class="schedule-note">Start/Finish dùng định dạng ngày; milestones chỉ cần Date. Đổi Type để chuyển Milestone ↔ Bar.</span></div>';
+  h+='<table class="sched-edit"><thead><tr><th>Type</th><th style="min-width:220px">Label</th><th>Start / Date</th><th>Finish</th><th>Color</th><th></th></tr></thead><tbody>';
+  (proj.milestones||[]).forEach((m,i)=>{ h+='<tr><td>'+scheduleTypeSelectHTML(k,'milestones',i)+'</td><td><input type="text" value="'+esc(m.label)+'" onchange="upSchedule(\''+k+'\',\'milestones\','+i+',\'label\',this.value)"></td><td><input type="date" value="'+esc(m.date)+'" onchange="upSchedule(\''+k+'\',\'milestones\','+i+',\'date\',this.value)"></td><td style="color:#9AA2B4">—</td><td><input type="color" value="'+esc(m.color||S.deColor)+'" onchange="upSchedule(\''+k+'\',\'milestones\','+i+',\'color\',this.value)"></td><td class="delcell"><button title="Xóa" onclick="delScheduleRow(\''+k+'\',\'milestones\','+i+')">✕</button></td></tr>'; });
+  (proj.bars||[]).forEach((r,i)=>{ h+='<tr><td>'+scheduleTypeSelectHTML(k,'bars',i)+'</td><td><input type="text" value="'+esc(r.label)+'" onchange="upSchedule(\''+k+'\',\'bars\','+i+',\'label\',this.value)"></td><td><input type="date" value="'+esc(r.start)+'" onchange="upSchedule(\''+k+'\',\'bars\','+i+',\'start\',this.value)"></td><td><input type="date" value="'+esc(r.end)+'" onchange="upSchedule(\''+k+'\',\'bars\','+i+',\'end\',this.value)"></td><td><input type="color" value="'+esc(scheduleBarColor(r))+'" onchange="upSchedule(\''+k+'\',\'bars\','+i+',\'color\',this.value)"></td><td class="delcell"><button title="Xóa" onclick="delScheduleRow(\''+k+'\',\'bars\','+i+')">✕</button></td></tr>'; });
+  h+='</tbody></table><div class="row" style="padding:10px;gap:8px;"><button class="btn small navy" onclick="addScheduleRow(\''+k+'\',\'milestones\')">＋ Thêm Milestone</button><button class="btn small navy" onclick="addScheduleRow(\''+k+'\',\'bars\')">＋ Thêm Bar</button></div></div>'; return h;
+}
+function upSchedule(k,type,i,field,value){ S.schedules=S.schedules||defaultSchedules(); if(!S.schedules[k]) S.schedules[k]=defaultSchedules()[k]; if(S.schedules[k]&&S.schedules[k][type]&&S.schedules[k][type][i]){ S.schedules[k][type][i][field]=value; renderSchedule(); } }
+function addScheduleRow(k,type){
+  S.schedules=S.schedules||defaultSchedules(); if(!S.schedules[k]) S.schedules[k]=defaultSchedules()[k];
+  const proj=S.schedules[k];
+  if(type==='milestones'){ proj.milestones=proj.milestones||[]; proj.milestones.push({label:'New Milestone', date:proj.start||sdISO(new Date()), color:S.deColor}); }
+  else { proj.bars=proj.bars||[]; proj.bars.push({label:'New Bar', start:proj.start||sdISO(new Date()), end:proj.end||sdISO(new Date())}); }
+  renderSchedule();
+}
+function delScheduleRow(k,type,i){
+  const proj=S.schedules && S.schedules[k]; if(!proj || !proj[type]) return;
+  proj[type].splice(i,1); renderSchedule();
+}
+function changeScheduleRowType(k,type,i,newType){
+  const proj=S.schedules && S.schedules[k]; if(!proj) return;
+  if(newType===type) { renderSchedule(); return; }
+  const arr=proj[type]||[]; const item=arr[i]; if(!item) return;
+  arr.splice(i,1);
+  if(newType==='bars'){
+    proj.bars=proj.bars||[];
+    proj.bars.push({label:item.label, start:item.date||proj.start, end:item.date||proj.end, color:item.color});
+  }else{
+    proj.milestones=proj.milestones||[];
+    proj.milestones.push({label:item.label, date:item.start||proj.start, color:item.color||S.deColor});
+  }
+  renderSchedule();
+}
+function exportSchedulePNG(){
+  const svg=$('#scheduleSvg'); if(!svg){ toast('Chưa có schedule để xuất'); return; }
+  const scale=+(($('#scheduleScale')||{}).value||3);
+  const ser=new XMLSerializer().serializeToString(svg);
+  svgToPNG(ser,scale,safeName((activeSchedule().title||'Schedule')+'_'+currentSchedule)+'_'+scale+'x.png');
+}
+
+/* Old embedded Master Scheduler has been replaced by the native two-tab Schedule view above. */
+function loadSchedulerFrame(){ renderSchedule(); }
+function reloadSchedulerFrame(){ renderSchedule(); }
+</script>
+</body>
+</html>
